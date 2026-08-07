@@ -488,7 +488,21 @@ def upload_file(request, base=settings.DATA_PATH):
                 task.user = request.user
                 task.save() # to populate task.id
 
-                handle_uploaded_file(upload, os.path.join(task.path(), 'image.fits'))
+                ext = form.cleaned_data.get('ext') or 'auto'
+                if ext == 'auto':
+                    # Default: store the file as-is; processing reads the last HDU
+                    handle_uploaded_file(upload, os.path.join(task.path(), 'image.fits'))
+                else:
+                    # Extract the selected HDU into a single-extension image.fits
+                    tmp_path = os.path.join(task.path(), 'upload_tmp.fits')
+                    handle_uploaded_file(upload, tmp_path)
+                    try:
+                        image = fits.getdata(tmp_path, int(ext))
+                        header = fits.getheader(tmp_path, int(ext))
+                        fits.writeto(os.path.join(task.path(), 'image.fits'), image, header)
+                    finally:
+                        if os.path.exists(tmp_path):
+                            os.remove(tmp_path)
                 messages.success(request, "文件已上传为任务 " + str(task.id))
 
                 tasks.append(task)
