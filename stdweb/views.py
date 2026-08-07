@@ -475,18 +475,25 @@ def handle_uploaded_file(upload, filename):
 
 def upload_data(request, base=settings.DATA_PATH):
     """Upload file(s) into the data browser root (DATA_PATH) without creating a task."""
-    if request.method == "POST" and request.FILES.get('file'):
-        upload = request.FILES['file']
-        filename = os.path.basename(upload.name)  # strip any path components
-        target = os.path.join(base, filename)
+    if request.method == "POST" and request.FILES.getlist('file'):
+        uploaded, skipped = [], []
 
-        if not filename:
-            messages.error(request, "上传文件名无效")
-        elif os.path.exists(target):
-            messages.error(request, f"文件 {filename} 已存在于数据区，请先删除再上传")
-        else:
-            handle_uploaded_file(upload, target)
-            messages.success(request, f"文件 {filename} 已上传到数据区")
+        for upload in request.FILES.getlist('file'):
+            filename = os.path.basename(upload.name)  # strip any path components
+            target = os.path.join(base, filename)
+
+            if not filename:
+                skipped.append('(空文件名)')
+            elif os.path.exists(target):
+                skipped.append(filename)
+            else:
+                handle_uploaded_file(upload, target)
+                uploaded.append(filename)
+
+        if uploaded:
+            messages.success(request, f"已上传 {len(uploaded)} 个文件: " + ", ".join(uploaded))
+        if skipped:
+            messages.warning(request, f"跳过 {len(skipped)} 个文件 (已存在或无效): " + ", ".join(skipped))
 
     return HttpResponseRedirect(reverse('files'))
 

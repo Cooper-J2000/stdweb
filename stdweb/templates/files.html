@@ -98,7 +98,7 @@
       <form method="POST" action="{% url 'upload_data' %}" enctype="multipart/form-data" class="mb-3">
         {% csrf_token %}
         <div class="input-group">
-          <input type="file" name="file" class="form-control" required/>
+          <input type="file" name="file" class="form-control" multiple required/>
           <button type="submit" class="btn btn-primary"><i class="fa fa-upload me-1"></i>上传到数据区</button>
         </div>
       </form>
