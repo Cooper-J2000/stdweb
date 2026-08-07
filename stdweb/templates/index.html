@@ -68,6 +68,18 @@
 
     </form>
 
+    <!-- Cache cleanup -->
+    <div class="mt-3">
+      <form method="POST" action="{% url 'clear_cache' %}"
+            onsubmit="return confirm('确定要清理模板缓存吗？\\n将删除已下载的巡天模板（PS1/SkyMapper/LS），释放磁盘空间。\\n重新处理相同天区时会自动重新下载。');">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-outline-secondary btn-sm">
+          <i class="fa fa-trash-o me-1"></i>清理模板缓存
+        </button>
+      </form>
+      <small class="text-muted">删除已下载的巡天模板（当前约 {{ cache_size }}），重新处理相同天区时自动重新下载。</small>
+    </div>
+
   {% else %}
 
     请先<a href="{% url 'login' %}">登录</a>后再上传文件。

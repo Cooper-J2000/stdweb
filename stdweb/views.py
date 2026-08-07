@@ -35,8 +35,29 @@ from .action_logging import log_action
 from . import celery_tasks
 
 
+def cache_size_str():
+    """Human-readable size of the survey template cache, or None if not configured."""
+    cache_dir = settings.STDPIPE_PS1_CACHE
+    if not cache_dir or not os.path.isdir(cache_dir):
+        return None
+    total = 0
+    for root, dirs, files in os.walk(cache_dir):
+        for f in files:
+            try:
+                total += os.path.getsize(os.path.join(root, f))
+            except OSError:
+                pass
+    if total > 1024 ** 3:
+        return f"{total / 1024 ** 3:.1f} GB"
+    elif total > 1024 ** 2:
+        return f"{total / 1024 ** 2:.1f} MB"
+    else:
+        return f"{total / 1024:.0f} KB"
+
+
 def index(request):
     context = {}
+    context['cache_size'] = cache_size_str()
 
     return TemplateResponse(request, 'index.html', context=context)
 
@@ -473,6 +494,43 @@ def handle_uploaded_file(upload, filename):
             dest.write(chunk)
 
 
+@login_required
+def clear_cache(request):
+    """Clear the survey template cache (STDPIPE_PS1_CACHE) to free disk space."""
+    if request.method == "POST":
+        cache_dir = settings.STDPIPE_PS1_CACHE
+        freed = 0
+
+        if not cache_dir or not os.path.isdir(cache_dir):
+            messages.info(request, "模板缓存目录未配置或不存在，无需清理")
+        else:
+            for entry in os.listdir(cache_dir):
+                p = os.path.join(cache_dir, entry)
+                try:
+                    if os.path.isfile(p) or os.path.islink(p):
+                        freed += os.path.getsize(p)
+                        os.remove(p)
+                    elif os.path.isdir(p):
+                        for root, dirs, files in os.walk(p, topdown=False):
+                            for f in files:
+                                fp = os.path.join(root, f)
+                                freed += os.path.getsize(fp)
+                                os.remove(fp)
+                            for d in dirs:
+                                os.rmdir(os.path.join(root, d))
+                        os.rmdir(p)
+                except OSError as e:
+                    messages.error(request, f"清理失败: {e}")
+
+            messages.success(
+                request,
+                f"模板缓存已清理，释放 {freed / 1024 / 1024:.1f} MB"
+                f"（重新处理相同天区时会自动重新下载）",
+            )
+
+    return HttpResponseRedirect(reverse('index'))
+
+
 def upload_data(request, base=settings.DATA_PATH):
     """Upload file(s) into the data browser root (DATA_PATH) without creating a task."""
     if request.method == "POST" and request.FILES.getlist('file'):
@@ -657,7 +715,7 @@ def upload_file(request, base=settings.DATA_PATH):
         else:
             messages.error(request, "上传文件出错")
 
-    context = {'form': form}
+    context = {'form': form, 'cache_size': cache_size_str()}
     return TemplateResponse(request, 'index.html', context=context)
 
 
