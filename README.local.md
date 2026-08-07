@@ -43,7 +43,13 @@ Python 环境：`/home/ajst/miniconda3/envs/stdweb/bin/python`（注意：**不�
    默认 `127.0.0.1,localhost`（可在 .env 里用 `ALLOWED_HOSTS` 覆盖）。
 3. **Files 删除功能**：文件浏览页新增删除按钮（`views.py` 的 `list_files` 增加 POST 处理 +
    `files.html` 模板）。安全设计：软链只删链接本身、普通文件有路径穿越防护、仅登录可用。
-4. **运维脚本**：`start_stdweb.sh` / `stop_stdweb.sh`。
+4. **首页上传选择 FITS 扩展层 (HDU)**：上传表单新增"FITS 扩展层 (HDU)"下拉
+   （默认"自动（最后一个 HDU）"，可显式选 HDU 0-10）。`forms.py` 的 `UploadFileForm`
+   新增 `ext` 字段；`views.py` 的 `upload_file` 在选定 HDU 时用
+   `fits.getdata/getheader` 提取该扩展为单扩展 image.fits（保留其头信息）。
+   注：处理端统一读 `fits.getdata(image.fits, -1)`（最后一个 HDU），多扩展 FITS
+   若数据不在最后扩展，务必用本功能或 Files 导入（详情页"处理此扩展名"）选定正确扩展。
+5. **运维脚本**：`start_stdweb.sh` / `stop_stdweb.sh`。
 
 ## 日常使用
 
