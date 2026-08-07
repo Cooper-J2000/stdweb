@@ -60,7 +60,7 @@ class UploadFileForm(forms.Form):
     title = forms.CharField(max_length=150, required=False, label="可选标题或备注")
 
     ext = forms.ChoiceField(
-        choices=[('auto', '自动（最后一个 HDU）')] + [(str(i), f'HDU {i} ({"PRIMARY" if i == 0 else "扩展"})') for i in range(1, 11)],
+        choices=[('auto', '自动（最后一个 HDU）')] + [(str(i), f'HDU {i} ({"PRIMARY" if i == 0 else "扩展"})') for i in range(0, 11)],
         initial='auto', required=False, label="FITS 扩展层 (HDU)",
     )
 

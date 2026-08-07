@@ -579,7 +579,7 @@ def upload_file(request, base=settings.DATA_PATH):
                         except OSError:
                             pass
 
-                        if ext is None:
+                        if ext is None or ext == 'auto':
                             shutil.copyfile(fullpath, os.path.join(task.path(), 'image.fits'))
                             messages.success(request, f"文件 {path} 已复制为任务 " + str(task.id))
 
