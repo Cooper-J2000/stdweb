@@ -49,6 +49,7 @@ urlpatterns = [
     # Uploads
     path('upload/', views.upload_file, name='upload'),
     path('upload_data/', views.upload_data, name='upload_data'),
+    path('clear_cache/', views.clear_cache, name='clear_cache'),
 
     # Tasks
     path('tasks/', views_tasks.tasks, {'id':None}, name='tasks'),
