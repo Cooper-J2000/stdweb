@@ -4,7 +4,7 @@
 {% load static %}
 {% load wrapwith %}
 
-{% block ptitle %}Queue : STDWeb{% endblock %}
+{% block ptitle %}队列 : STDWeb{% endblock %}
 
 {% block head %}
   <script src="{% static 'queue.js' %}"></script>
@@ -12,10 +12,10 @@
 
 {% block title %}
   {% if ctask %}
-    Queued task ID
+    队列任务 ID
     {{ ctask.id }}
   {% else %}
-    Queued tasks
+    任务队列
   {% endif %}
 {% endblock %}
 
@@ -27,18 +27,18 @@
     </div>
 
     <div class="mb-4">
-      <small class="text-muted">Auto-updated: <span id="queue-refresh-time">-</span></small>
+      <small class="text-muted">自动更新: <span id="queue-refresh-time">-</span></small>
     </div>
 
     {% if user.is_staff %}
-      {% wrapwith "wrapper_card_collapsed.html" with title="Management" %}
+      {% wrapwith "wrapper_card_collapsed.html" with title="管理" %}
 
       <form action="" method="POST" class="queue-action-form">
         {% csrf_token %}
         <button type="submit" name="action" value="terminatealltasks" class="btn btn-danger"
-                data-confirm="Terminate all queued tasks?">Terminate all queued tasks</button>
+                data-confirm="终止所有队列任务？">终止所有队列任务</button>
         <button type="submit" name="action" value="cleanuplinkedtasks" class="btn btn-danger"
-                data-confirm="Mark all running tasks as failed and unlink them from the queue?">Cleanup all linked tasks</button>
+                data-confirm="将所有运行中的任务标记为失败并从队列中解除关联？">清理所有关联任务</button>
       </form>
 
       {% endwrapwith %}
@@ -49,28 +49,28 @@
     <div class="mb-4" id="ctask-info" data-state-url="{% url 'queue_state' id=ctask.id %}">
 
       <p>
-        State: <b id="ctask-state">{{ ctask.state }}</b>
+        状态: <b id="ctask-state">{{ ctask.state }}</b>
         {% if ctask.date_done %}
-          at <b>{{ ctask.date_done|date:"Y-m-d H:i:s" }} UT</b>
+          于 <b>{{ ctask.date_done|date:"Y-m-d H:i:s" }} UT</b>
         {% endif %}
       </p>
 
 
       {% if chain_position %}
         <p>
-          Step: <b id="chain-position">{{ chain_position }}/{{ chain_total }}</b>
+          步骤: <b id="chain-position">{{ chain_position }}/{{ chain_total }}</b>
         </p>
       {% endif %}
 
       {% if task %}
         <p>
-          Linked to task: <a href="{% url 'tasks' id=task.id %}">{{ task.id }}</a> - {{ task.original_name }}
-          (state: <b id="task-state">{{ task.state }}</b>)
+          关联任务: <a href="{% url 'tasks' id=task.id %}">{{ task.id }}</a> - {{ task.original_name }}
+          （状态: <b id="task-state">{{ task.state|state_cn }}</b>）
         </p>
       {% endif %}
 
       <p id="ctask-finished" class="d-none">
-        <span class="badge bg-secondary">Not in the queue anymore</span>
+        <span class="badge bg-secondary">已不在队列中</span>
       </p>
 
     </div>
@@ -81,11 +81,11 @@
         <form action="" method="POST" class="queue-action-form">
           {% csrf_token %}
           <button type="submit" name="action" value="terminatetask" class="btn btn-danger"
-                  data-confirm="Terminate this task{% if chain_total %} chain ({{ chain_total }} subtasks){% endif %}?">
-            Terminate task{% if chain_total %} chain ({{ chain_total }} subtasks){% endif %}
+                  data-confirm="终止此任务{% if chain_total %}链（{{ chain_total }} 个子任务）{% endif %}？">
+            终止任务{% if chain_total %}链（{{ chain_total }} 个子任务）{% endif %}
           </button>
           <button type="submit" name="action" value="cleanuplinkedtask" class="btn btn-danger"
-                  data-confirm="Mark the linked task as failed and unlink it from the queue?">Cleanup linked tasks</button>
+                  data-confirm="将关联任务标记为失败并从队列中解除关联？">清理关联任务</button>
         </form>
       </div>
 

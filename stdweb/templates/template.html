@@ -1,7 +1,7 @@
 {% load filters %}
 {% load tags %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -78,20 +78,20 @@
     <nav class="navbar bg-body-tertiary navbar-expand-lg mb-4 py-1 shadow-sm">
       <div class="container-fluid">
         <a class="navbar-brand" href="{% url 'index' %}">STDWeb</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="切换导航">
           <span class="navbar-toggler-icon"></span>
         </button>
 
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
           <ul class="navbar-nav me-auto">
             <li class="nav-item">
-              <a class="nav-link {% if request.resolver_match.view_name == 'files' %}active{% endif %}" href="{% url 'files' %}">Files</a>
+              <a class="nav-link {% if request.resolver_match.view_name == 'files' %}active{% endif %}" href="{% url 'files' %}">文件</a>
             </li>
             <li class="nav-item">
-              <a class="nav-link {% if request.resolver_match.view_name == 'tasks' %}active{% endif %}" href="{% url 'tasks' %}">Tasks</a>
+              <a class="nav-link {% if request.resolver_match.view_name == 'tasks' %}active{% endif %}" href="{% url 'tasks' %}">任务</a>
             </li>
             <li class="nav-item">
-              <a class="nav-link {% if request.resolver_match.view_name == 'lightcurves' %}active{% endif %}" href="{% url 'lightcurves' %}">Lightcurves</a>
+              <a class="nav-link {% if request.resolver_match.view_name == 'lightcurves' %}active{% endif %}" href="{% url 'lightcurves' %}">光变曲线</a>
             </li>
             {% if perms.stdweb.skyportal_upload and settings.SKYPORTAL_TOKEN %}
               <li class="nav-item">
@@ -103,39 +103,39 @@
           <ul class="navbar-nav ms-auto me-2">
             {% if user.is_authenticated %}
               <li class="nav-item dropdown">
-                <a href="#" class="dropdown-toggle nav-link" data-bs-toggle="dropdown">User: {{ user|user }} <span class="caret"></span></a>
+                <a href="#" class="dropdown-toggle nav-link" data-bs-toggle="dropdown">用户: {{ user|user }} <span class="caret"></span></a>
                 <ul class="dropdown-menu shadow-sm">
                   {% if user.is_staff or True %}
                     <li class="dropdown-item disabled">
-                      Free: {% filter naturalsize %}{% free_disk_space %}{% endfilter %}
+                      磁盘剩余: {% filter naturalsize %}{% free_disk_space %}{% endfilter %}
                     </li>
                   {% endif %}
 
                   <li>
-                    <a class="dropdown-item" href="{% url 'queue' %}">Queued Tasks</a>
+                    <a class="dropdown-item" href="{% url 'queue' %}">任务队列</a>
                   </li>
 
                   {% if user.is_staff %}
                     <li>
-                      <a class="dropdown-item" href="{% url 'action_log' %}">Action Log</a>
+                      <a class="dropdown-item" href="{% url 'action_log' %}">操作日志</a>
                     </li>
                   {% endif %}
 
                   {% if user.is_staff %}
                     <li>
-                      <a class="dropdown-item" href="{% url 'admin:index' %}">Admin Panel</a>
+                      <a class="dropdown-item" href="{% url 'admin:index' %}">管理后台</a>
                     </li>
                   {% endif %}
 
                   <li>
-                    <a class="dropdown-item" href="{% url 'profile' %}">Profile</a>
+                    <a class="dropdown-item" href="{% url 'profile' %}">个人设置</a>
                   </li>
 
                   <!-- Logout requires POST -->
                   <li>
                     <form id="logout-form" method="post" action="{% url 'logout' %}?next={{ request.get_full_path }}">
                       {% csrf_token %}
-                      <button class="btn-link dropdown-item" type="submit">Log out</button>
+                      <button class="btn-link dropdown-item" type="submit">退出登录</button>
                     </form>
                   </li>
 
@@ -143,7 +143,7 @@
               </li>
             {% else %}
               <li class="nav-item">
-                <a class="nav-link" href="{% url 'login' %}?next={{ request.get_full_path }}">Log in</a>
+                <a class="nav-link" href="{% url 'login' %}?next={{ request.get_full_path }}">登录</a>
               </li>
             {% endif %}
           </ul>
@@ -168,7 +168,7 @@
               <div class="toast-body">
                 {{ message|safe }}
               </div>
-              <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+              <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="关闭"></button>
             </div>
           </div>
         {% endfor %}

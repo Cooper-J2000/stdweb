@@ -112,7 +112,7 @@ def tasks(request, id=None):
 
         # Prevent task operations if it is still running
         if task.celery_id is not None and request.method == 'POST':
-            messages.warning(request, f"Task {id} is already running")
+            messages.warning(request, f"任务 {id} 已在运行")
             return HttpResponseRedirect(request.path_info)
 
         all_forms = {}
@@ -135,7 +135,7 @@ def tasks(request, id=None):
                 if 'custom_template' in request.FILES:
                     views.handle_uploaded_file(request.FILES['custom_template'],
                                                os.path.join(task.path(), 'custom_template.fits'))
-                    messages.info(request, "Custom template uploaded as custom_template.fits")
+                    messages.info(request, "自定义模板已上传为 custom_template.fits")
 
                 if form.has_changed() or True:
                     for name,value in form.cleaned_data.items():
@@ -166,10 +166,10 @@ def tasks(request, id=None):
                         log_action('task_delete', task=task, request=request,
                                    details={'original_name': task.original_name, 'access': 'web'})
                         task.delete()
-                        messages.success(request, "Task " + str(id ) + " is deleted")
+                        messages.success(request, "任务 " + str(id ) + " 已删除")
                         return HttpResponseRedirect(reverse('tasks'))
                     else:
-                        messages.error(request, "Cannot delete task " + str(id) + " belonging to " + task.user.username)
+                        messages.error(request, "无法删除属于 " + task.user.username + " 的任务 " + str(id))
                         return HttpResponseRedirect(request.path_info)
 
                 if action == 'duplicate_task':
@@ -200,27 +200,27 @@ def tasks(request, id=None):
 
                     log_action('task_duplicate', task=task, request=request,
                                details={'source_task_id': old_id, 'access': 'web'})
-                    messages.success(request, "Task duplicated as " + str(task.id))
+                    messages.success(request, "任务已复制为 " + str(task.id))
 
                     return HttpResponseRedirect(reverse('tasks', kwargs={'id': task.id}))
 
                 # Ensure we have proper permissions for the rest of the actions
                 if not context['user_may_submit']:
-                    messages.error(request, "Cannot perform action " + action + " on task " + str(id) + " belonging to " + task.user.username)
+                    messages.error(request, "无法对属于 " + task.user.username + " 的任务 " + str(id) + " 执行操作 " + action)
                     return HttpResponseRedirect(request.path_info)
 
                 if action == 'fix_image':
                     # TODO: move to async celery task?..
                     processing.fix_image(os.path.join(task.path(), 'image.fits'), task.config)
-                    messages.success(request, "Fixed the image header for task " + str(id))
+                    messages.success(request, "已修复任务 " + str(id) + " 的图像头")
 
                 if action == 'update_config':
                     if 'raw_config' in form.changed_data:
                         task.config = form.cleaned_data.get('raw_config')
                         task.save()
-                        messages.success(request, f"Config for task {str(id)} updated")
+                        messages.success(request, f"任务 {str(id)} 的配置已更新")
                     else:
-                        messages.success(request, f"Config for task {str(id)} unchanged")
+                        messages.success(request, f"任务 {str(id)} 的配置未变化")
 
                 if action == 'make_custom_mask':
                     return HttpResponseRedirect(reverse('task_mask', kwargs={'id': task.id, 'mode': 'image'}))
@@ -232,7 +232,7 @@ def tasks(request, id=None):
                     celery_tasks.run_task_steps(task, ['stack'])
                     log_action('processing_start', task=task, request=request,
                                details={'steps': ['stack'], 'access': 'web'})
-                    messages.success(request, "Started re-stacking for task " + str(id))
+                    messages.success(request, "任务 " + str(id) + " 已开始重新叠加")
 
                 if action in ['cleanup_task', 'archive_task']:
                     if action in ['cleanup_task']:
@@ -241,7 +241,7 @@ def tasks(request, id=None):
                     elif action in ['archive_task']:
                         log_action('task_archive', task=task, request=request, details={'access': 'web'})
                     celery_tasks.run_task_steps(task, ['cleanup'])
-                    messages.success(request, "Started cleanup for task " + str(id))
+                    messages.success(request, "任务 " + str(id) + " 已开始清理")
 
                 if action == 'inspect_image':
                     steps = ['inspect']
@@ -252,11 +252,11 @@ def tasks(request, id=None):
                     celery_tasks.run_task_steps(task, steps)
                     log_action('processing_start', task=task, request=request,
                                details={'steps': steps, 'access': 'web'})
-                    messages.success(request, "Started image inspection for task " + str(id))
+                    messages.success(request, "任务 " + str(id) + " 已开始图像检查")
                     if form.cleaned_data.get('run_photometry'):
-                        messages.success(request, "Started image photometry for task " + str(id))
+                        messages.success(request, "任务 " + str(id) + " 已开始图像测光")
                     if form.cleaned_data.get('run_subtraction'):
-                        messages.success(request, "Started template subtraction for task " + str(id))
+                        messages.success(request, "任务 " + str(id) + " 已开始模板相减")
 
                 if action == 'photometry_image':
                     steps = ['photometry']
@@ -265,27 +265,27 @@ def tasks(request, id=None):
                     celery_tasks.run_task_steps(task, steps)
                     log_action('processing_start', task=task, request=request,
                                details={'steps': steps, 'access': 'web'})
-                    messages.success(request, "Started image photometry for task " + str(id))
+                    messages.success(request, "任务 " + str(id) + " 已开始图像测光")
                     if form.cleaned_data.get('run_subtraction'):
-                        messages.success(request, "Started template subtraction for task " + str(id))
+                        messages.success(request, "任务 " + str(id) + " 已开始模板相减")
 
                 if action == 'transients_simple_image':
                     celery_tasks.run_task_steps(task, ['simple_transients'])
                     log_action('processing_start', task=task, request=request,
                                details={'steps': ['simple_transients'], 'access': 'web'})
-                    messages.success(request, "Started simple transient detection for task " + str(id))
+                    messages.success(request, "任务 " + str(id) + " 已开始简单暂现源检测")
 
                 if action == 'subtract_image':
                     celery_tasks.run_task_steps(task, ['subtraction'])
                     log_action('processing_start', task=task, request=request,
                                details={'steps': ['subtraction'], 'access': 'web'})
-                    messages.success(request, "Started template subtraction for task " + str(id))
+                    messages.success(request, "任务 " + str(id) + " 已开始模板相减")
 
                 return HttpResponseRedirect(request.path_info)
 
             elif form:
                 for f,err in form.errors.items():
-                    messages.error(request, f"Error in {f} field: {err}")
+                    messages.error(request, f"字段 {f} 出错: {err}")
 
             return HttpResponseRedirect(request.path_info)
 
@@ -341,9 +341,9 @@ def tasks(request, id=None):
                 ra0, dec0, sr0 = utils.resolve_coordinates(query)
                 if ra0 is not None and dec0 is not None:
                     if sr0 is not None:
-                        messages.info(request, f"Looking for tasks inside {sr0:.2f} deg around {ra0:.4f} {dec0:+.4f}")
+                        messages.info(request, f"正在查找 {ra0:.4f} {dec0:+.4f} 周围 {sr0:.2f} 度内的任务")
                     else:
-                        messages.info(request, f"Looking for tasks covering {ra0:.4f} {dec0:+.4f}")
+                        messages.info(request, f"正在查找覆盖 {ra0:.4f} {dec0:+.4f} 的任务")
 
         context['tasks'] = tasks.prefetch_related('groups')
         context['shareable_groups'] = models.accessible_groups(request.user)
@@ -406,7 +406,7 @@ def tasks_actions(request):
                 selected_ids = set(request.POST.getlist('action_groups'))
                 sel_groups = [g for g in accessible if str(g.id) in selected_ids]
                 if not sel_groups:
-                    messages.warning(request, "No groups selected")
+                    messages.warning(request, "未选择用户组")
                     return HttpResponseRedirect(form.cleaned_data['referer'])
                 group_count = 0
 
@@ -415,7 +415,7 @@ def tasks_actions(request):
 
                 if group_action:
                     if not task.can_edit(request.user):
-                        messages.error(request, "Cannot modify sharing for task " + str(id) + " belonging to " + task.user.username)
+                        messages.error(request, "无法修改属于 " + task.user.username + " 的任务 " + str(id) + " 的共享")
                         continue
                     if action == 'add_to_groups':
                         task.groups.add(*sel_groups)
@@ -431,7 +431,7 @@ def tasks_actions(request):
                     task.state = 'archive'
                     task.save()
                     log_action('task_archive', task=task, request=request, details={'access': 'web'})
-                    messages.success(request, "Started archiving for task " + str(id))
+                    messages.success(request, "任务 " + str(id) + " 已开始归档")
 
                 if action == 'cleanup':
                     task.celery_id = celery_tasks.task_cleanup.delay(task.id).id
@@ -439,21 +439,21 @@ def tasks_actions(request):
                     task.state = 'cleanup'
                     task.save()
                     log_action('task_cleanup', task=task, request=request, details={'access': 'web'})
-                    messages.success(request, "Started cleanup for task " + str(id))
+                    messages.success(request, "任务 " + str(id) + " 已开始清理")
 
                 if action == 'delete':
                     if task.can_delete(request.user):
                         log_action('task_delete', task=task, request=request,
                                    details={'original_name': task.original_name, 'access': 'web'})
                         task.delete()
-                        messages.success(request, "Task " + str(id ) + " is deleted")
+                        messages.success(request, "任务 " + str(id ) + " 已删除")
                     else:
-                        messages.error(request, "Cannot delete task " + str(id) + " belonging to " + task.user.username)
+                        messages.error(request, "无法删除属于 " + task.user.username + " 的任务 " + str(id))
 
             if group_action and group_count:
                 names = ", ".join(_.name for _ in sel_groups)
-                verb = "added to" if action == 'add_to_groups' else "removed from"
-                messages.success(request, f"{group_count} task(s) {verb} groups: {names}")
+                verb = "添加至" if action == 'add_to_groups' else "移出"
+                messages.success(request, f"{group_count} 个任务已{verb}用户组: {names}")
 
             return HttpResponseRedirect(form.cleaned_data['referer'])
 
@@ -588,7 +588,7 @@ def task_mask(request, id=None, mode='image'):
 
         # Validate template exists
         if not os.path.exists(os.path.join(basepath, image_file)):
-            messages.error(request, "Custom template not found. Upload a template first.")
+            messages.error(request, "未找到自定义模板。请先上传模板。")
             return HttpResponseRedirect(reverse('tasks', kwargs={'id': task.id}))
     else:
         image_file = 'image.fits'
@@ -608,16 +608,16 @@ def task_mask(request, id=None, mode='image'):
                 mask_file=mask_file,
                 json_file=json_file,
         ):
-            messages.success(request, f"{'Custom template' if mode == 'template' else 'Image'} mask created for task {id}")
+            messages.success(request, f"{'自定义模板' if mode == 'template' else '图像'}掩模已创建（任务 {id}）")
         else:
-            messages.success(request, f"{'Custom template' if mode == 'template' else 'Image'} mask cleared for task {id}")
+            messages.success(request, f"{'自定义模板' if mode == 'template' else '图像'}掩模已清除（任务 {id}）")
 
         # Only run inspection for image mask (not for template mask)
         if mode == 'image':
             task.celery_id = celery_tasks.task_inspect.delay(task.id).id
             task.state = 'inspect'
             task.save()
-            messages.success(request, "Started image inspection for task " + str(id))
+            messages.success(request, "任务 " + str(id) + " 已开始图像检查")
 
         return HttpResponseRedirect(reverse('tasks', kwargs={'id': task.id}))
 
@@ -652,7 +652,7 @@ def task_preprocess(request, id=None):
 
     # Validate image exists
     if not os.path.exists(image_path):
-        messages.error(request, "Image file not found for task " + str(id))
+        messages.error(request, "任务 " + str(id) + " 的图像文件不存在")
         return HttpResponseRedirect(reverse('tasks', kwargs={'id': task.id}))
 
     # Helper for backing up image before processing
@@ -685,7 +685,7 @@ def task_preprocess(request, id=None):
                 remove_fringes=(action == 'remove_fringes'),
             )
 
-            messages.success(request, "Removed lines from the image for task " + str(id))
+            messages.success(request, "已从任务 " + str(id) + " 的图像中移除条纹")
 
             # Run necessary post-activity actions
             _post_action()
@@ -698,7 +698,7 @@ def task_preprocess(request, id=None):
 
             # Validate that at least some coordinates are provided
             if not any([x1, y1, x2, y2]):
-                messages.error(request, "Please provide at least one crop coordinate")
+                messages.error(request, "请至少提供一个裁剪坐标")
                 return HttpResponseRedirect(request.path_info)
 
             # Create backup before first modification
@@ -710,7 +710,7 @@ def task_preprocess(request, id=None):
                 x1=x1, y1=y1, x2=x2, y2=y2
             )
 
-            messages.success(request, "Cropped the image for task " + str(id))
+            messages.success(request, "已裁剪任务 " + str(id) + " 的图像")
 
             # Run necessary post-activity actions
             _post_action()
@@ -722,7 +722,7 @@ def task_preprocess(request, id=None):
 
             # Validate background size
             if not bg_size:
-                messages.error(request, "Please provide background size")
+                messages.error(request, "请提供背景尺寸")
                 return HttpResponseRedirect(request.path_info)
 
             try:
@@ -730,7 +730,7 @@ def task_preprocess(request, id=None):
                 if bg_size <= 0:
                     raise ValueError("Background size must be positive")
             except ValueError as e:
-                messages.error(request, f"Invalid background size: {e}")
+                messages.error(request, f"无效的背景尺寸: {e}")
                 return HttpResponseRedirect(request.path_info)
 
             # Create backup before first modification
@@ -744,8 +744,8 @@ def task_preprocess(request, id=None):
                 divide=bg_divide
             )
 
-            operation = "divided by" if bg_divide else "subtracted"
-            messages.success(request, f"Background {operation} for task {id} using method '{bg_method}'")
+            operation = "除以" if bg_divide else "扣除"
+            messages.success(request, f"已对任务 {id} 使用方法 '{bg_method}' {operation}背景")
 
             # Run necessary post-activity actions
             _post_action()
@@ -753,11 +753,11 @@ def task_preprocess(request, id=None):
         elif action == 'reset':
             # Restore from backup
             if not os.path.exists(orig_path):
-                messages.error(request, "No backup image available to restore for task " + str(id))
+                messages.error(request, "任务 " + str(id) + " 没有可用于恢复的备份图像")
                 return HttpResponseRedirect(request.path_info)
 
             shutil.copy2(orig_path, image_path)
-            messages.success(request, "Reset image to original for task " + str(id))
+            messages.success(request, "任务 " + str(id) + " 的图像已重置为原始状态")
 
             # Remove the backup to preserve space
             # FIXME: is it easier to just move the file above?..

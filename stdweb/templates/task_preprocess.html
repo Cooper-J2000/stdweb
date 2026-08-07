@@ -9,19 +9,19 @@
 {% block content %}
 
   {% if not task %}
-    <p>Task not found</p>
+    <p>未找到任务</p>
   {% else %}
 
     <h2>
       <a href="{% url 'tasks' id=task.id %}" class="text-decoration-none text-body me-2"
-         title="Return to task page">
+         title="返回任务页">
         <span class="fa fa-angle-left"/>
       </a>
 
-      Image pre-processing for Task {{ task.id }}</h2>
+      任务 {{ task.id }} 的图像预处理</h2>
 
     <p class="text-muted">
-      Apply preprocessing operations to remove artifacts, estimate and remove background, or crop the image to the desired region.
+      应用预处理操作以移除伪影、估计并扣除背景，或将图像裁剪到所需区域。
     </p>
 
     <!-- Display image -->
@@ -36,23 +36,23 @@
       <form action="" method="POST" id="form">
         {% csrf_token %}
 
-        <h5>Remove stripes from image</h5>
+        <h5>去除图像条纹</h5>
         <button type="submit" name="action" value="destripe_vertical"
                 class="btn btn-primary"
-                title="Remove vertical lines from the image">
-          Destripe vertical
+                title="去除图像中的竖线">
+          去除竖条纹
         </button>
 
         <button type="submit" name="action" value="destripe_horizontal"
                 class="btn btn-primary"
-                title="Remove horizontal lines from the image">
-          Destripe horizontal
+                title="去除图像中的横线">
+          去除横条纹
         </button>
 
         <button type="submit" name="action" value="remove_fringes"
                 class="btn btn-warning"
-                title="Remove fringes using Fourier-based impainting">
-          Remove fringes
+                title="使用基于傅里叶的修复去除条纹">
+          去除条纹
         </button>
 
       </form>
@@ -64,35 +64,35 @@
       <form action="" method="POST" id="form">
         {% csrf_token %}
 
-        <h5>Crop image</h5>
+        <h5>裁剪图像</h5>
         <p class="text-muted small">
-          Crop the image using pixel coordinates or offsets. Use negative values for offsets from the right/top edges.
+          使用像素坐标或偏移量裁剪图像。右/上边缘的偏移使用负值。
         </p>
         <div class="row align-items-end mb-2">
           <div class="col-md">
-            <label for="crop_x1" class="form-label">Min X</label>
+            <label for="crop_x1" class="form-label">最小 X</label>
             <input type="number" class="form-control" name="crop_x1" id="crop_x1"
-                   title="Use negative values for offsets from the right"/>
+                   title="右侧偏移使用负值"/>
           </div>
           <div class="col-md">
-            <label for="crop_y1" class="form-label">Min Y</label>
+            <label for="crop_y1" class="form-label">最小 Y</label>
             <input type="number" class="form-control" name="crop_y1" id="crop_y1"
-                   title="Use negative values for offsets from the top"/>
+                   title="顶部偏移使用负值"/>
           </div>
           <div class="col-md">
-            <label for="crop_x2" class="form-label">Max X</label>
+            <label for="crop_x2" class="form-label">最大 X</label>
             <input type="number" class="form-control" name="crop_x2" id="crop_x2"
-                   title="Use negative values for offsets from the right"/>
+                   title="右侧偏移使用负值"/>
           </div>
           <div class="col-md">
-            <label for="crop_y2" class="form-label">Max Y</label>
+            <label for="crop_y2" class="form-label">最大 Y</label>
             <input type="number" class="form-control" name="crop_y2" id="crop_y2"
-                   title="Use negative values for offsets from the top"/>
+                   title="顶部偏移使用负值"/>
           </div>
           <div class="col-md-auto">
             <button type="submit" name="action" value="crop_image" class="btn btn-primary"
-                    title="Crop the image">
-              Crop
+                    title="裁剪图像">
+              裁剪
             </button>
           </div>
         </div>
@@ -106,21 +106,21 @@
       <form action="" method="POST" id="form">
         {% csrf_token %}
 
-        <h5>Background removal</h5>
+        <h5>背景扣除</h5>
         <p class="text-muted small">
-          Estimate and remove background from the image using various methods.
+          使用各种方法估计并扣除图像背景。
         </p>
         <div class="row align-items-end mb-2">
           <div class="col-md">
-            <label for="bg_size" class="form-label">Background size (pixels)</label>
+            <label for="bg_size" class="form-label">背景网格大小 (像素)</label>
             <input type="number" class="form-control" name="bg_size" id="bg_size"
                    value="256" min="1"
-                   title="Size of the background estimation box"/>
+                   title="背景估计框的大小"/>
           </div>
           <div class="col-md">
-            <label for="bg_method" class="form-label">Method</label>
+            <label for="bg_method" class="form-label">方法</label>
             <select class="form-select" name="bg_method" id="bg_method"
-                    title="Background estimation method">
+                    title="背景估计方法">
               <option value="sep" selected>SEP</option>
               <option value="photutils">Photutils</option>
               <option value="morphology">Morphology</option>
@@ -129,16 +129,16 @@
           <div class="col-md-auto">
             <div class="form-check mb-2">
               <input class="form-check-input" type="checkbox" name="bg_divide" id="bg_divide"
-                     title="Divide by background instead of subtracting"/>
+                     title="除以背景而非扣除"/>
               <label class="form-check-label" for="bg_divide">
-                Divide instead of subtract
+                除以背景而非扣除
               </label>
             </div>
           </div>
           <div class="col-md-auto">
             <button type="submit" name="action" value="remove_background" class="btn btn-primary"
-                    title="Remove background from the image">
-              Remove background
+                    title="扣除图像背景">
+              扣除背景
             </button>
           </div>
         </div>
@@ -152,21 +152,21 @@
       <form action="" method="POST" id="form">
         {% csrf_token %}
 
-        <h5>Reset</h5>
+        <h5>重置</h5>
           {% if has_backup %}
             <p class="text-success small">
-              A backup of the original image exists and can be restored.
+              存在原始图像的备份，可以恢复。
             </p>
           {% else %}
             <p class="text-muted small">
-              The original image will be backed up automatically before any modifications.
+              原始图像在任何修改前都会自动备份。
             </p>
           {% endif %}
         </p>
         <button type="submit" name="action" value="reset"
                 class="btn btn-warning"
-                {% if not has_backup %}disabled title="No backup available"{% else %}title="Restore original image from backup"{% endif %}>
-          Reset to original
+                {% if not has_backup %}disabled title="无可用备份"{% else %}title="从备份恢复原始图像"{% endif %}>
+          重置为原始图像
         </button>
 
       </form>
@@ -177,7 +177,7 @@
 
     <div class="mb-4">
       <a href="{% url 'tasks' id=task.id %}" class="btn btn-secondary"
-         title="Return to task page">
+         title="返回任务页">
         Back to task
       </a>
     </div>

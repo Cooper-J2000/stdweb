@@ -1,6 +1,6 @@
 {% extends "template.html" %}
 
-{% block ptitle %}Login : STDWeb{% endblock %}
+{% block ptitle %}登录 : STDWeb{% endblock %}
 
 {% block title %}{% endblock %}
 
@@ -8,24 +8,24 @@
 
   <div class="row justify-content-center">
     <div class="col-md-6">
-      <h2>STDWeb Authentication</h2>
+      <h2>STDWeb 身份验证</h2>
 
       {% if form.errors %}
         <div class="alert alert-danger" role="alert">
-          Can't log you in with username and/or password entered. Please try again.
+          用户名或密码错误，无法登录。请重试。
         </div>
       {% endif %}
 
       <form method="post" action="{% url 'login' %}" role="form" class="form">
         {% csrf_token %}
         <div class="form-group mb-3">
-          <input type="text" name="{{ form.username.name }}" class="form-control" id="username" placeholder="Username" required autofocus>
+          <input type="text" name="{{ form.username.name }}" class="form-control" id="username" placeholder="用户名" required autofocus>
         </div>
         <div class="form-group mb-3">
-          <input type="password" name="{{ form.password.name }}" class="form-control" id="password" placeholder="Password" required>
+          <input type="password" name="{{ form.password.name }}" class="form-control" id="password" placeholder="密码" required>
         </div>
         <div class="form-group d-grid">
-          <button type="submit" class="btn btn-primary">Log in</button>
+          <button type="submit" class="btn btn-primary">登录</button>
         </div>
         <input type="hidden" name="next" value="{{ next }}" />
       </form>

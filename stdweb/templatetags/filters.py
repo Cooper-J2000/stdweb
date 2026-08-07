@@ -233,3 +233,30 @@ def numformat(value, arg):
             return format(int(value), arg)
         except (ValueError, TypeError):
             return ''
+
+
+@register.filter
+def state_cn(state):
+    """Map task state strings to Chinese labels (unknown states pass through)."""
+    mapping = {
+        'uploaded': '已上传',
+        'inspect': '检查中',
+        'inspect_done': '检查完成',
+        'photometry': '测光中',
+        'photometry_done': '测光完成',
+        'transients_simple': '暂现源检测中',
+        'transients_simple_done': '暂现源检测完成',
+        'subtraction': '相减中',
+        'subtraction_done': '相减完成',
+        'stacking': '叠加中',
+        'stacking_done': '叠加完成',
+        'cleanup': '清理中',
+        'cleanup_done': '清理完成',
+        'archiving': '归档中',
+        'failed': '失败',
+        'cancelled': '已取消',
+        'done': '完成',
+    }
+    if not state:
+        return state
+    return mapping.get(str(state), str(state))

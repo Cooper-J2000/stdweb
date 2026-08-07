@@ -4,13 +4,13 @@
 {% load crispy_forms_tags %}
 {% load filters %}
 
-{% block ptitle %}Lightcurves : STDWeb{% endblock %}
+{% block ptitle %}光变曲线 : STDWeb{% endblock %}
 
 {% block head %}
   {% include "popup_image.html" %}
 {% endblock %}
 
-{% block title %}Search around sky position{% endblock %}
+{% block title %}按天空位置搜索{% endblock %}
 
 {% block content %}
 
@@ -22,23 +22,23 @@
 
     <div class="mb-3 d-flex justify-content-between align-items-center">
       <div>
-        Search position:
+        搜索位置:
         <strong>{{ search_ra|to_sexadecimal_hours }} {{ search_dec|to_sexadecimal_plus }}</strong>
         (<strong>{{ search_ra|floatformat:4 }} {{ search_dec|numformat:'+.4f' }}</strong>)
         {% if search_sr0 %}
-          Radius: <strong>{{ search_sr0|numformat:'.1f' }} arcsec</strong>
+          半径: <strong>{{ search_sr0|numformat:'.1f' }} 角秒</strong>
         {% endif %}
         {% if tasks %}
-          Results: <strong>{{ tasks|length }}</strong>
+          结果: <strong>{{ tasks|length }}</strong>
         {% endif %}
       </div>
       <div>
         <a class="btn btn-sm btn-outline-success"
            href="{% url 'lightcurve_download_votable' %}?{{ request.GET.urlencode }}">
-          <i class="fa fa-file-download"></i> Download VOTable
+          <i class="fa fa-file-download"></i> 下载 VOTable
         </a>
         <button id="load-all-photometry" class="btn btn-sm btn-outline-secondary">
-          <i class="fa fa-download"></i> Load All Photometry
+          <i class="fa fa-download"></i> 加载全部测光
         </button>
       </div>
     </div>
@@ -56,13 +56,13 @@
                 <div class="card-body">
 
                   <span class="badge bg-{% if 'failed' in task.state or 'cancelled' in task.state %}danger{% else %}primary{% endif %} rounded-pill card-badge-right border">
-                    {{ task.state }}
+                    {{ task.state|state_cn }}
                   </span>
 
                   <a href="{% url 'tasks' id=task.id %}" class="text-decoration-none text-body">
                     <span class="card-badge-left d-flex">
                       <span class="badge bg-light rounded-pill border text-dark">
-                        Task {{ task.id }}
+                        任务 {{ task.id }}
                       </span>
                       <span class="badge bg-info-subtle rounded-pill border text-dark ms-2">
                         {{ task.user }}
@@ -81,29 +81,29 @@
                   </a>
                   {% if task.ra is not None and task.dec is not None and task.radius is not None and task.config.pixscale %}
                     <p class="card-text mt-2 mb-1">
-                      Center: <span class="fw-bold" title="{{ task.ra|to_sexadecimal_hours }} {{ task.dec|to_sexadecimal_plus }}">
+                      中心: <span class="fw-bold" title="{{ task.ra|to_sexadecimal_hours }} {{ task.dec|to_sexadecimal_plus }}">
                       {{ task.ra|floatformat:4 }} {{ task.dec|numformat:'+.4f' }}
                       </span>
-                      Radius: <span class="fw-bold" title="{{ task.radius|to_sexadecimal }}">{{ task.radius|floatformat:2 }}</span> deg.
-                      Scale: <span class="fw-bold">{{ task.config.pixscale|multiply:3600|floatformat:2 }}</span> arcsec/pix.
+                      半径: <span class="fw-bold" title="{{ task.radius|to_sexadecimal }}">{{ task.radius|floatformat:2 }}</span> 度
+                      像素比例: <span class="fw-bold">{{ task.config.pixscale|multiply:3600|floatformat:2 }}</span> 角秒/像素
                     </p>
                   {% endif %}
 
                   <p class="card-text mb-1">
                     {% if task.config.target_ra is not None and task.config.target_dec is not None %}
-                      Target: <span class="fw-bold">{{ task.config.target_ra|to_sexadecimal_hours }} {{ task.config.target_dec|to_sexadecimal_plus }}</span>
+                      目标: <span class="fw-bold">{{ task.config.target_ra|to_sexadecimal_hours }} {{ task.config.target_dec|to_sexadecimal_plus }}</span>
                     {% endif %}
 
                     {% if task.config.time %}
-                      Time: <span class="fw-bold">{{ task.config.time }}</span>
+                      时间: <span class="fw-bold">{{ task.config.time }}</span>
                     {% endif %}
 
                     {% if task.config.filter %}
-                      Filter: <span class="fw-bold">{{ task.config.filter }}</span>
+                      滤光片: <span class="fw-bold">{{ task.config.filter }}</span>
                     {% endif %}
 
                     {% if task.config.mag_limit %}
-                      Limit: <span class="fw-bold">{{ task.config.mag_limit|floatformat:2 }}</span>
+                      极限: <span class="fw-bold">{{ task.config.mag_limit|floatformat:2 }}</span>
                     {% endif %}
 
                   </p>
@@ -116,11 +116,11 @@
                               data-dec="{{ search_dec }}"
                               data-radius="{% if search_sr0 %}{{ search_sr0 }}{% else %}5{% endif %}"
                               data-targets-only="{% if targets_only %}true{% else %}false{% endif %}">
-                        Load Photometry
+                        加载测光
                       </button>
                       <div class="photometry-loading d-none">
                         <span class="spinner-border spinner-border-sm" role="status"></span>
-                        Loading measurements...
+                        正在加载测量数据...
                       </div>
                       <div class="photometry-data"></div>
                     </div>
@@ -137,11 +137,11 @@
                   alt="Cutout"
                   class="img-fluid rounded-end cutout-image"
                   style="width: 300px; height: 300px; object-fit: cover; cursor: pointer;"
-                  title="Click to enlarge"
+                  title="点击放大"
                   {# Popup image #}
                   onclick="popupImage(event,
                   '{% url 'task_preview' id=task.id path='image.fits' %}?timestamp={{ task.modified|unix }}&sub_ra={{ search_ra }}&sub_dec={{ search_dec }}&sub_sr={{ sub_sr }}&width=1024',
-                  'Task {{ task.id }}: {{ task.original_name }}',
+                  '任务 {{ task.id }}: {{ task.original_name }}',
                   true, 'stdview-image', {'data-stretch':1,
                   'data-mark-ra':'{{ search_ra }}',
                   'data-mark-dec':'{{ search_dec }}',
@@ -166,9 +166,9 @@
     {% show_pages %}
 
   {% elif form.is_bound %}
-    <p class="text-muted">No tasks found covering this position. Try adjusting the search coordinates or check that tasks have been processed through the photometry stage.</p>
+    <p class="text-muted">未找到覆盖此位置的任务。请调整搜索坐标，或确认任务已完成测光处理。</p>
   {% else %}
-    <p class="text-muted">Enter coordinates and radius to search for photometric measurements covering a specific sky position.</p>
+    <p class="text-muted">输入坐标和半径，搜索覆盖指定天空位置的测光数据。</p>
   {% endif %}
 
   {# Supporting JavaScript #}
@@ -189,16 +189,16 @@
 
        // Disable the button and update text
        $loadAllBtn.prop('disabled', true);
-       $loadAllBtn.html('<i class="fa fa-spinner fa-spin"></i> Loading ' + loadedCount + '/' + totalButtons);
+       $loadAllBtn.html('<i class="fa fa-spinner fa-spin"></i> 正在加载 ' + loadedCount + '/' + totalButtons);
 
        // Sequential loading function
        function loadNext(index) {
          if (index >= totalButtons) {
            // All done
            $loadAllBtn.prop('disabled', false);
-           $loadAllBtn.html('<i class="fa fa-check"></i> All Loaded');
+           $loadAllBtn.html('<i class="fa fa-check"></i> 已全部加载');
            setTimeout(function() {
-             $loadAllBtn.html('<i class="fa fa-download"></i> Load All Photometry');
+             $loadAllBtn.html('<i class="fa fa-download"></i> 加载全部测光');
            }, 2000);
            return;
          }
@@ -235,17 +235,17 @@
              $data.html(html);
              $loading.addClass('d-none');
              loadedCount++;
-             $loadAllBtn.html('<i class="fa fa-spinner fa-spin"></i> Loading ' + loadedCount + '/' + totalButtons);
+             $loadAllBtn.html('<i class="fa fa-spinner fa-spin"></i> 正在加载 ' + loadedCount + '/' + totalButtons);
              // Load next item
              loadNext(index + 1);
            },
 
            error: function(xhr, status, error) {
-             $data.html('<div class="alert alert-danger">Error loading photometry: ' + error + '</div>');
+             $data.html('<div class="alert alert-danger">测光数据加载失败: ' + error + '</div>');
              $loading.addClass('d-none');
              $btn.removeClass('d-none');
              loadedCount++;
-             $loadAllBtn.html('<i class="fa fa-spinner fa-spin"></i> Loading ' + loadedCount + '/' + totalButtons);
+             $loadAllBtn.html('<i class="fa fa-spinner fa-spin"></i> 正在加载 ' + loadedCount + '/' + totalButtons);
              // Continue to next item even on error
              loadNext(index + 1);
            }
@@ -293,7 +293,7 @@
          },
 
          error: function(xhr, status, error) {
-           $data.html('<div class="alert alert-danger">Error loading photometry: ' + error + '</div>');
+           $data.html('<div class="alert alert-danger">测光数据加载失败: ' + error + '</div>');
            $loading.addClass('d-none');
            $btn.removeClass('d-none');
          }
