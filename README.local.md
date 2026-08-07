@@ -49,7 +49,13 @@ Python 环境：`/home/ajst/miniconda3/envs/stdweb/bin/python`（注意：**不�
    `fits.getdata/getheader` 提取该扩展为单扩展 image.fits（保留其头信息）。
    注：处理端统一读 `fits.getdata(image.fits, -1)`（最后一个 HDU），多扩展 FITS
    若数据不在最后扩展，务必用本功能或 Files 导入（详情页"处理此扩展名"）选定正确扩展。
-5. **运维脚本**：`start_stdweb.sh` / `stop_stdweb.sh`。
+5. **Files 页面上传到数据区**：文件列表页顶部新增"上传到数据区"表单
+   （`views.py` 新增 `upload_data` 视图 + `urls.py` 注册 `upload_data` 路由 +
+   `files.html` 模板）。文件存入 DATA_PATH 但不创建任务，之后可在 Files 页
+   点开预览各 HDU 并导入任务。同名文件拒绝上传（先删除再传）；文件名经
+   `os.path.basename` 净化防路径穿越。
+6. **运维脚本**：`start_stdweb.sh` / `stop_stdweb.sh`（celery 并发固定为 6，
+   12 个 astropy worker 对 15GB 内存偏多）。
 
 ## 日常使用
 
@@ -71,6 +77,13 @@ Python 环境：`/home/ajst/miniconda3/envs/stdweb/bin/python`（注意：**不�
 cd /home/ajst/Astro_Software/stdweb
 /home/ajst/miniconda3/envs/stdweb/bin/python manage.py changepassword admin
 ```
+
+多扩展 FITS 推荐流程（数据不在第一个 HDU 时）：
+
+1. Files 页 → "上传到数据区"（或直接 `cp` 到 data/ 目录）
+2. Files 页点开该文件 → 预览各 HDU（PRIMARY/SCI/WEIGHT…）→ 确认科学数据所在扩展
+3. 点该扩展的"处理此扩展名"导入任务；或勾选多个文件"处理所选文件"批量导入
+4. 主页直接上传时，可用"FITS 扩展层 (HDU)"下拉选定扩展（默认自动 = 最后一个 HDU）
 
 ### 启动脚本说明
 
