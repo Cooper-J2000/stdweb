@@ -59,6 +59,11 @@ class UploadFileForm(forms.Form):
 
     title = forms.CharField(max_length=150, required=False, label="可选标题或备注")
 
+    ext = forms.ChoiceField(
+        choices=[('auto', '自动（最后一个 HDU）')] + [(str(i), f'HDU {i} ({"PRIMARY" if i == 0 else "扩展"})') for i in range(1, 11)],
+        initial='auto', required=False, label="FITS 扩展层 (HDU)",
+    )
+
     groups = forms.ModelMultipleChoiceField(
         queryset=Group.objects.none(), required=False, label="与用户组共享",
         widget=CheckboxDropdown,
@@ -133,6 +138,10 @@ class UploadFileForm(forms.Form):
                 Column('stack_mask_cosmics', css_class="col-md-auto mb-2"),
                 css_class='align-items-end'
             ) if filename == '*' else None,
+            Row(
+                Column('ext', css_class="col-md-3"),
+                css_class='align-items-end'
+            ) if filename != '*' else None,
             Row(
                 Column(HTML("自动运行:"), css_class="col-md-auto mb-1"),
                 Column('do_inspect', css_class="col-md-auto"),
