@@ -141,6 +141,7 @@ conda create -n stdweb python=3.12 pip -y --solver classic
 | celery 进程假死 | `stop_stdweb.sh && start_stdweb.sh` |
 | 任务一直排队不跑 | `redis-cli ping` 确认 Redis 活着；看 `tail -20 celery.log` |
 | 处理报错 | 任务页有完整日志；`tail -50 server.log` 看 HTTP 层错误 |
+| AttributeError: module 'numpy' has no attribute 'in1d' | numpy 2.x 移除了 np.in1d/np.int_。stdpipe (local-fixes 分支) 与 stdweb (local-zh 分支) 均已改为 np.isin/int()。改代码后**必须重启 celery**（长驻进程不会自动加载新代码） |
 | 盲解算失败 | 检查 /etc/astrometry.cfg 的 add_path 是否指向 index 目录（cpulimit 300 是 5 分钟上限） |
 | 模板相减下载模板失败 | 需要外网；检查 `tail -20 celery.log` 中 PS1/SkyMapper 下载报错 |
 | 改 .env 后不生效 | 重启服务：`stop_stdweb.sh && start_stdweb.sh` |
