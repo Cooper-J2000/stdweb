@@ -18,7 +18,7 @@ if pgrep -f "[p]ython.*-m celery -A stdweb worker" > /dev/null 2>&1; then
     echo "[OK] Celery worker 已在运行"
 else
     export OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 OMP_NUM_THREADS=1
-    nohup "$PY" -m celery -A stdweb worker --loglevel=info >> celery.log 2>&1 &
+    nohup "$PY" -m celery -A stdweb worker --concurrency=6 --loglevel=info >> celery.log 2>&1 &
     echo "[OK] Celery worker 已启动 (PID $!)"
 fi
 
