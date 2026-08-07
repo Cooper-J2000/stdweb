@@ -34,7 +34,7 @@
    var aladin = null;
    var loadData = null;
    var currentLayers = [];
-   var mocBtn = $('<button type="button" class="btn btn-outline-secondary me-auto">Request MOC</button>');
+   var mocBtn = $('<button type="button" class="btn btn-outline-secondary me-auto">请求 MOC</button>');
 
    var dialog = bootbox.dialog({
      title: "Sky Map",
@@ -96,7 +96,7 @@
            var tasks = data.tasks;
            if (!tasks || tasks.length === 0) {
              $('#aladin-lite-div').append(
-               '<div class="alert alert-info position-absolute top-50 start-50 translate-middle" style="z-index: 100;">No tasks with spatial data found</div>'
+               '<div class="alert alert-info position-absolute top-50 start-50 translate-middle" style="z-index: 100;">未找到含空间数据的任务</div>'
              );
              return;
            }
@@ -120,8 +120,8 @@
              if (task.title) {
                popupContent += '<div class="fst-italic mb-1">' + $('<span/>').text(task.title).html() + '</div>';
              }
-             popupContent += '<div>State: <strong>' + task.state + '</strong></div>';
-             popupContent += '<div>User: <strong>' + $('<span/>').text(task.user).html() + '</strong></div>';
+             popupContent += '<div>状态: <strong>' + task.state + '</strong></div>';
+             popupContent += '<div>用户: <strong>' + $('<span/>').text(task.user).html() + '</strong></div>';
              popupContent += '<div>RA: ' + task.ra.toFixed(4) + ' Dec: ' + (task.dec >= 0 ? '+' : '') + task.dec.toFixed(4) + '</div>';
              popupContent += '<div>Radius: ' + task.radius.toFixed(2) + ' deg</div>';
              popupContent += '<div>Created: ' + task.created + '</div>';
@@ -255,7 +255,7 @@
          },
          error: function(xhr, status, error) {
            $('#aladin-lite-div').append(
-             '<div class="alert alert-danger position-absolute top-50 start-50 translate-middle" style="z-index: 100;">Failed to load sky map data</div>'
+             '<div class="alert alert-danger position-absolute top-50 start-50 translate-middle" style="z-index: 100;">天区图数据加载失败</div>'
            );
            if (onDone) onDone();
          }

@@ -6,6 +6,19 @@
 
 {% block head %}
   <script language="javascript">
+   // Delete a file from the data browser (local files only)
+   delete_file = function(filename, name, dirpath) {
+     if (!confirm('Delete ' + name + '?\nThis cannot be undone.')) return;
+     var f = document.createElement('form');
+     f.method = 'POST';
+     f.action = dirpath;
+     var a = document.createElement('input'); a.type = 'hidden'; a.name = 'action'; a.value = 'delete';
+     var b = document.createElement('input'); b.type = 'hidden'; b.name = 'filename'; b.value = filename;
+     var c = document.createElement('input'); c.type = 'hidden'; c.name = 'csrfmiddlewaretoken'; c.value = '{{ csrf_token }}';
+     f.appendChild(a); f.appendChild(b); f.appendChild(c);
+     document.body.appendChild(f); f.submit();
+   }
+
    check_menu_visibility = function() {
      var hidden = true;
      var menu = $('#actions_menu');
@@ -18,7 +31,7 @@
        }
      });
 
-     $('input[name="local_filename"]').prop('value', count + ' file(s) selected for processing')
+     $('input[name="local_filename"]').prop('value', count + ' 个文件已选择待处理')
 
      if (hidden)
        menu.hide();
@@ -82,7 +95,7 @@
     <!-- Display directory listing -->
 
     {% if not files %}
-      Nothing to list
+      没有可显示的文件
     {% else %}
       <!-- <p>
       {{ files|length }} entries
@@ -98,8 +111,8 @@
           {% if not is_task_browser %}
             <input class="form-check-input" type="checkbox" name="select_all" title="Select all"/>
           {% endif %}
-          <span class="ms-auto me-auto"><strong>Filename</strong></span>
-          <span class="pull-right me-4"><strong>Size</strong></span>
+          <span class="ms-auto me-auto"><strong>文件名</strong></span>
+          <span class="pull-right me-4"><strong>大小</strong></span>
         </div>
 
         {% for file in files %}
@@ -125,6 +138,13 @@
             {% if file.type != 'dir' and file.type != 'up' %}
               <span class="pull-right">{{ file.size|naturalsize }}</span>
             {% endif %}
+
+            {% if not is_task_browser and file.type != 'dir' and file.type != 'up' %}
+              <button type="button" class="btn btn-sm btn-outline-danger ms-2" title="Delete {{ file.name }}"
+                      onclick="delete_file('{{ file.path|escapejs }}', '{{ file.name|escapejs }}', '{% url 'files' path=path %}')">
+                <i class="fa fa-trash-o"></i>
+              </button>
+            {% endif %}
           </div>
 
         {% endfor %}
@@ -133,7 +153,7 @@
 
       {% if not is_task_browser %}
       <div id='actions_menu'>
-        <h3>Process selected files</h3>
+        <h3>处理所选文件</h3>
         {% crispy form %}
       </div>
 
@@ -145,17 +165,27 @@
   {% else %}
     <!-- Display single file - starts with some metadata -->
     <ul>
-      <li>Path: <b>
+      <li>路径: <b>
         {% if is_task_browser %}
           <a href="{% url 'task_download' id=task_id path=path %}"><i class="fa fa-download"></i> {{ path }}</a>
         {% else %}
           <a href="{% url 'download' path=path %}"><i class="fa fa-download"></i> {{ path }}</a>
         {% endif %}
       </b></li>
-      <li>Size: <b>{{ stat.st_size }}</b> bytes / {{ stat.st_size|naturalsize }}</li>
-      <li>Last modified: <b>{{ time.iso }}</b> - {{ time.datetime|naturaltime }}</li>
+      <li>大小: <b>{{ stat.st_size }}</b> 字节 / {{ stat.st_size|naturalsize }}</li>
+      <li>最后修改: <b>{{ time.iso }}</b> - {{ time.datetime|naturaltime }}</li>
       <li><b>{{ mime }}</b> : {{ magic_info }}</li>
     </ul>
+
+    {% if not is_task_browser %}
+      <form method="POST" action="{% url 'files' path=path %}" class="mt-2 mb-2"
+            onsubmit="return confirm('Delete {{ path }}?\nThis cannot be undone.');">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="delete"/>
+        <input type="hidden" name="filename" value="{{ path }}"/>
+        <button type="submit" class="btn btn-danger btn-sm"><i class="fa fa-trash-o"></i> 删除此文件</button>
+      </form>
+    {% endif %}
 
     {% if mode == 'text' %}
       <!-- Display text file contents -->
@@ -226,7 +256,7 @@
 
               {% if hdu.data is not none %}
                 {% if fitsfile|length > 1 and not is_task_browser %}
-                  <button class="btn btn-warning mt-2 mb-2" type="submit" name="ext" value="{{ forloop.counter0 }}">Process this extension</button>
+                  <button class="btn btn-warning mt-2 mb-2" type="submit" name="ext" value="{{ forloop.counter0 }}">处理此扩展名</button>
                 {% endif %}
                 <div class="text-center">
                   {% if is_task_browser %}

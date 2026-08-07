@@ -39,42 +39,42 @@ class CheckboxDropdown(forms.SelectMultiple):
 
 
 class UploadFileForm(forms.Form):
-    file = forms.FileField(label="FITS file", required=False)
+    file = forms.FileField(label="FITS 文件", required=False)
     local_file = forms.CharField(required=False, widget=forms.HiddenInput())
-    local_filename = forms.CharField(required=False, label="FITS file", disabled=True) # Will not be sent
+    local_filename = forms.CharField(required=False, label="FITS 文件", disabled=True) # Will not be sent
     local_files = MultipleChoiceFieldNoValidation(required=False, widget=forms.CheckboxSelectMultiple)
     preset = forms.ChoiceField(
         choices=[('','')],
-        required=False, label="Configuration Preset"
+        required=False, label="配置预设"
     )
     target = forms.CharField(
-        required=False, empty_value=None, label="Target name or coordinates",
-        widget=forms.Textarea(attrs={'rows':1, 'placeholder': 'Name, coordinates, or x=... y=... pixel position, one per line'})
+        required=False, empty_value=None, label="目标名称或坐标",
+        widget=forms.Textarea(attrs={'rows':1, 'placeholder': '名称、坐标或 x=... y=... 像素位置，每行一个'})
     )
 
-    do_inspect = forms.BooleanField(initial=False, required=False, label="Inspection")
-    do_photometry = forms.BooleanField(initial=False, required=False, label="Photometry")
-    do_simple_transients = forms.BooleanField(initial=False, required=False, label="Simple transients detection")
-    do_subtraction = forms.BooleanField(initial=False, required=False, label="Subtraction")
+    do_inspect = forms.BooleanField(initial=False, required=False, label="检查")
+    do_photometry = forms.BooleanField(initial=False, required=False, label="测光")
+    do_simple_transients = forms.BooleanField(initial=False, required=False, label="简单暂现源检测")
+    do_subtraction = forms.BooleanField(initial=False, required=False, label="模板相减")
 
-    title = forms.CharField(max_length=150, required=False, label="Optional title or comment")
+    title = forms.CharField(max_length=150, required=False, label="可选标题或备注")
 
     groups = forms.ModelMultipleChoiceField(
-        queryset=Group.objects.none(), required=False, label="Share with groups",
+        queryset=Group.objects.none(), required=False, label="与用户组共享",
         widget=CheckboxDropdown,
     )
 
     # FIXME: changes to these fields should be reflected in views.upload_file() !!!
     stack_method = forms.ChoiceField(
         choices=[
-            ('sum', 'Sum'),
-            ('clipped_mean', 'Sigma-clipped mean'),
-            ('median', 'Median'),
+            ('sum', '求和'),
+            ('clipped_mean', 'Sigma 截尾均值'),
+            ('median', '中位数'),
         ],
-        required=False, label="Stacking method"
+        required=False, label="叠加方法"
     )
-    stack_subtract_bg = forms.BooleanField(initial=True, required=False, label="Subtract background")
-    stack_mask_cosmics = forms.BooleanField(initial=False, required=False, label="Mask cosmics")
+    stack_subtract_bg = forms.BooleanField(initial=True, required=False, label="扣除背景")
+    stack_mask_cosmics = forms.BooleanField(initial=False, required=False, label="宇宙线掩模")
 
     def __init__(self, *args, **kwargs):
         filename = kwargs.pop('filename', None)
@@ -97,17 +97,17 @@ class UploadFileForm(forms.Form):
         if filename == '*':
             file_field = 'local_filename'
             self.fields['local_file'].initial = filename
-            self.fields['local_filename'].initial = 'Please select one or more files above'
-            submit = Submit('process_files', 'Process selected files', css_class='btn-primary')
+            self.fields['local_filename'].initial = '请在上方选择一个或多个文件'
+            submit = Submit('process_files', '处理所选文件', css_class='btn-primary')
         elif filename:
             file_field = 'local_filename'
             self.fields['local_file'].initial = filename
             self.fields['local_filename'].initial = filename
-            submit = Submit('process', 'Process this file', css_class='btn-primary')
+            submit = Submit('process', '处理此文件', css_class='btn-primary')
         else:
             file_field = 'file'
             self.fields['file'].required = True
-            submit = Submit('upload', 'Upload', css_class='btn-primary')
+            submit = Submit('upload', '上传', css_class='btn-primary')
 
         self.helper.layout = Layout(
             Row(
@@ -117,7 +117,7 @@ class UploadFileForm(forms.Form):
                 Column('groups', css_class="col-md-auto") if 'groups' in self.fields else None,
                 Column(submit, css_class="col-md-auto mb-1"),
                 Column(
-                    Submit('stack_files', 'Stack and Process', css_class='btn-secondary'),
+                    Submit('stack_files', '叠加并处理', css_class='btn-secondary'),
                     css_class="col-md-auto mb-1"
                 ) if filename == '*' else None,
                 css_class='align-items-end'
@@ -134,7 +134,7 @@ class UploadFileForm(forms.Form):
                 css_class='align-items-end'
             ) if filename == '*' else None,
             Row(
-                Column(HTML("Run automatically:"), css_class="col-md-auto mb-1"),
+                Column(HTML("自动运行:"), css_class="col-md-auto mb-1"),
                 Column('do_inspect', css_class="col-md-auto"),
                 Column('do_photometry', css_class="col-md-auto"),
                 Column('do_simple_transients', css_class="col-md-auto"),
@@ -148,8 +148,8 @@ class UploadFileForm(forms.Form):
 
 
 class TasksFilterForm(forms.Form):
-    query = forms.CharField(max_length=100, required=False, label="Filter Tasks")
-    show_all = forms.BooleanField(initial=False, required=False, label="Show all")
+    query = forms.CharField(max_length=100, required=False, label="筛选任务")
+    show_all = forms.BooleanField(initial=False, required=False, label="显示全部")
 
     def __init__(self, *args, show_all=True, **kwargs):
         super().__init__(*args, **kwargs)
@@ -161,7 +161,7 @@ class TasksFilterForm(forms.Form):
             Row(
                 Column(
                     InlineField(
-                        PrependedText('query', 'Filter:', placeholder='Search tasks by filenames or titles or usernames, or specify field center (and optionally radius) for positional search.'),
+                        PrependedText('query', '筛选:', placeholder='按文件名、标题或用户名搜索任务，或指定场中心（可选半径）进行位置搜索。'),
                     ),
                     css_class="col-md"
                 ),
@@ -192,17 +192,17 @@ class PrettyJSONEncoder(json.JSONEncoder):
 
 class TaskInspectForm(forms.Form):
     form_type = forms.CharField(initial='inspect', widget=forms.HiddenInput())
-    target = forms.CharField(required=False, empty_value=None, label="Target name or coordinates",
-                             widget=forms.Textarea(attrs={'rows':1, 'placeholder': 'Name, coordinates, or x=... y=... pixel position, one per line'}))
-    time = forms.CharField(max_length=30, required=False, empty_value=None, label="Time")
-    gain = forms.FloatField(min_value=0, required=False, label="Gain, e/ADU")
-    saturation = forms.FloatField(min_value=0, required=False, label="Saturation level, ADU")
-    mask_cosmics = forms.BooleanField(initial=True, required=False, label="Mask cosmics")
+    target = forms.CharField(required=False, empty_value=None, label="目标名称或坐标",
+                             widget=forms.Textarea(attrs={'rows':1, 'placeholder': '名称、坐标或 x=... y=... 像素位置，每行一个'}))
+    time = forms.CharField(max_length=30, required=False, empty_value=None, label="时间")
+    gain = forms.FloatField(min_value=0, required=False, label="增益, e/ADU")
+    saturation = forms.FloatField(min_value=0, required=False, label="饱和值, ADU")
+    mask_cosmics = forms.BooleanField(initial=True, required=False, label="宇宙线掩模")
 
-    raw_config = forms.JSONField(initial=False, required=False, label="Raw config JSON", encoder=PrettyJSONEncoder)
+    raw_config = forms.JSONField(initial=False, required=False, label="原始配置 JSON", encoder=PrettyJSONEncoder)
 
-    run_photometry = forms.BooleanField(initial=False, required=False, label="Photometry")
-    run_subtraction = forms.BooleanField(initial=False, required=False, label="Subtraction")
+    run_photometry = forms.BooleanField(initial=False, required=False, label="测光")
+    run_subtraction = forms.BooleanField(initial=False, required=False, label="模板相减")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -223,7 +223,7 @@ class TaskInspectForm(forms.Form):
                 Column('mask_cosmics', css_class="col-md-auto"),
                 Column(
                     Row(
-                        Column(HTML('Also run:'), css_class="col-md-auto"),
+                        Column(HTML('同时运行:'), css_class="col-md-auto"),
                         Column('run_photometry', css_class="col-md-auto"),
                         Column('run_subtraction', css_class="col-md-auto"),
                         css_class='align-items-start justify-content-start'
@@ -237,42 +237,42 @@ class TaskInspectForm(forms.Form):
 
 class TaskPhotometryForm(forms.Form):
     form_type = forms.CharField(initial='photometry', widget=forms.HiddenInput())
-    sn = forms.FloatField(min_value=0, required=False, label="S/N Ratio")
-    initial_aper = forms.FloatField(min_value=0, required=False, label="Initial aperture, pixels")
-    initial_r0 = forms.FloatField(min_value=0, required=False, label="Smoothing kernel, pixels")
-    bg_size = forms.IntegerField(min_value=0, required=False, label="Background mesh size")
-    minarea = forms.IntegerField(min_value=0, required=False, label="Minimal object area")
-    rel_aper = forms.FloatField(min_value=0, required=False, label="Relative aperture, FWHM")
-    rel_bg1 = forms.FloatField(min_value=0, required=False, label="Sky inner annulus, FWHM")
-    rel_bg2 = forms.FloatField(min_value=0, required=False, label="Outer annulus, FWHM")
-    fwhm_override = forms.FloatField(min_value=0, required=False, label="FWHM override, pixels")
+    sn = forms.FloatField(min_value=0, required=False, label="信噪比 S/N")
+    initial_aper = forms.FloatField(min_value=0, required=False, label="初始孔径, 像素")
+    initial_r0 = forms.FloatField(min_value=0, required=False, label="平滑核, 像素")
+    bg_size = forms.IntegerField(min_value=0, required=False, label="背景网格大小")
+    minarea = forms.IntegerField(min_value=0, required=False, label="最小目标面积")
+    rel_aper = forms.FloatField(min_value=0, required=False, label="相对孔径, FWHM")
+    rel_bg1 = forms.FloatField(min_value=0, required=False, label="天光内环, FWHM")
+    rel_bg2 = forms.FloatField(min_value=0, required=False, label="外环, FWHM")
+    fwhm_override = forms.FloatField(min_value=0, required=False, label="FWHM 覆盖值, 像素")
 
     filter = forms.ChoiceField(choices=[('','')] + [(_,supported_filters[_]['name']) for _ in supported_filters.keys()],
-                               required=False, label="Filter")
+                               required=False, label="滤光片")
     cat_name = forms.ChoiceField(choices=[('','')] + [(_,supported_catalogs[_]['name']) for _ in supported_catalogs.keys()],
-                                required=False, label="Reference catalog")
-    cat_limit = forms.FloatField(required=False, label="Catalog limiting mag")
+                                required=False, label="参考星表")
+    cat_limit = forms.FloatField(required=False, label="星表极限星等")
 
-    spatial_order = forms.IntegerField(min_value=0, required=False, label="Zeropoint spatial order")
-    use_color = forms.BooleanField(required=False, label="Use color term")
-    sr_override = forms.FloatField(min_value=0, required=False, label="Matching radius, arcsec")
+    spatial_order = forms.IntegerField(min_value=0, required=False, label="零点空间阶数")
+    use_color = forms.BooleanField(required=False, label="使用颜色项")
+    sr_override = forms.FloatField(min_value=0, required=False, label="匹配半径, 角秒")
 
-    prefilter_detections = forms.BooleanField(initial=True, required=False, label="Pre-filter detections")
-    filter_blends = forms.BooleanField(initial=True, required=False, label="Filter catalogue blends")
-    diagnose_color = forms.BooleanField(initial=False, required=False, label="Color term diagnostics")
-    refine_wcs = forms.BooleanField(required=False, label="Refine astrometry")
-    blind_match_wcs = forms.BooleanField(required=False, label="Blind match")
-    inspect_bg = forms.BooleanField(required=False, label="Inspect background")
-    centroid_targets = forms.BooleanField(required=False, label="Centroid targets")
-    optimal_extraction = forms.BooleanField(required=False, label="Optimal extraction")
-    nonlin = forms.BooleanField(required=False, label="Non-linearity")
+    prefilter_detections = forms.BooleanField(initial=True, required=False, label="预过滤检测")
+    filter_blends = forms.BooleanField(initial=True, required=False, label="过滤星表混合源")
+    diagnose_color = forms.BooleanField(initial=False, required=False, label="颜色项诊断")
+    refine_wcs = forms.BooleanField(required=False, label="精化天体测量")
+    blind_match_wcs = forms.BooleanField(required=False, label="盲匹配")
+    inspect_bg = forms.BooleanField(required=False, label="检查背景")
+    centroid_targets = forms.BooleanField(required=False, label="目标质心化")
+    optimal_extraction = forms.BooleanField(required=False, label="最优提取")
+    nonlin = forms.BooleanField(required=False, label="非线性")
 
-    blind_match_ps_lo = forms.FloatField(initial=0.2, min_value=0, required=False, label="Scale lower limit, arcsec/pix")
-    blind_match_ps_up = forms.FloatField(initial=4.0, min_value=0, required=False, label="Scale upper limit, arcsec/pix")
-    blind_match_center = forms.CharField(required=False, empty_value=None, label="Center position for blind match")
-    blind_match_sr0 = forms.FloatField(initial=2, min_value=0, required=False, label="Radius, deg")
+    blind_match_ps_lo = forms.FloatField(initial=0.2, min_value=0, required=False, label="比例下限, 角秒/像素")
+    blind_match_ps_up = forms.FloatField(initial=4.0, min_value=0, required=False, label="比例上限, 角秒/像素")
+    blind_match_center = forms.CharField(required=False, empty_value=None, label="盲匹配中心位置")
+    blind_match_sr0 = forms.FloatField(initial=2, min_value=0, required=False, label="半径, 度")
 
-    run_subtraction = forms.BooleanField(initial=False, required=False, label="Subtraction")
+    run_subtraction = forms.BooleanField(initial=False, required=False, label="模板相减")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -327,7 +327,7 @@ class TaskPhotometryForm(forms.Form):
                 css_class='align-items-end'
             ),
             Row(
-                Column(HTML('Also run:'), css_class="col-md-auto"),
+                Column(HTML('同时运行:'), css_class="col-md-auto"),
                 # Column('run_photometry', css_class="col-md-auto"),
                 Column('run_subtraction', css_class="col-md-auto"),
                 css_class='align-items-start justify-content-end'
@@ -344,13 +344,13 @@ class TaskTransientsSimpleForm(forms.Form):
     #     label="Vizier catalogues",
     #     widget=s2forms.Select2MultipleWidget,
     # )
-    simple_skybot = forms.BooleanField(initial=True, required=False, label="Check SkyBoT")
-    simple_others = forms.CharField(initial=None, empty_value=None, required=False, label="Task IDs to cross-check")
-    simple_center = forms.CharField(required=False, empty_value=None, label="Center position to limit the search")
-    simple_sr0 = forms.FloatField(initial=None, min_value=0, required=False, label="Radius, deg")
-    simple_blends = forms.BooleanField(initial=True, required=False, label="Reject blends")
-    simple_prefilter = forms.BooleanField(initial=True, required=False, label="Reject prefiltered")
-    simple_mag_diff = forms.FloatField(initial=2, min_value=0, required=False, label="Minimal mag difference")
+    simple_skybot = forms.BooleanField(initial=True, required=False, label="检查 SkyBoT")
+    simple_others = forms.CharField(initial=None, empty_value=None, required=False, label="交叉核对的任务 ID")
+    simple_center = forms.CharField(required=False, empty_value=None, label="限制搜索的中心位置")
+    simple_sr0 = forms.FloatField(initial=None, min_value=0, required=False, label="半径, 度")
+    simple_blends = forms.BooleanField(initial=True, required=False, label="剔除混合源")
+    simple_prefilter = forms.BooleanField(initial=True, required=False, label="剔除预过滤源")
+    simple_mag_diff = forms.FloatField(initial=2, min_value=0, required=False, label="最小星等差")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -379,32 +379,32 @@ class TaskTransientsSimpleForm(forms.Form):
 class TaskSubtractionForm(forms.Form):
     form_type = forms.CharField(initial='subtraction', widget=forms.HiddenInput())
     template = forms.ChoiceField(choices=[(_,supported_templates[_]['name']) for _ in supported_templates.keys()],
-                                 required=False, label="Template")
-    hotpants_extra = forms.JSONField(required=False, label="HOTPANTS extra params", widget=forms.TextInput)
-    sub_size = forms.IntegerField(min_value=0, required=False, label="Sub-image size")
-    sub_overlap = forms.IntegerField(min_value=0, required=False, label="Sub-image overlap")
-    sub_verbose = forms.BooleanField(required=False, label="Verbose")
-    custom_template = forms.FileField(required=False, label="Custom template file")
-    template_fwhm_override = forms.FloatField(min_value=0, required=False, label="Template FWHM override, image pixels")
-    custom_template_gain = forms.FloatField(min_value=0, required=False, label="Custom template gain, e/ADU")
-    custom_template_saturation = forms.FloatField(min_value=0, required=False, label="Saturation level, ADU")
+                                 required=False, label="模板")
+    hotpants_extra = forms.JSONField(required=False, label="HOTPANTS 附加参数", widget=forms.TextInput)
+    sub_size = forms.IntegerField(min_value=0, required=False, label="子图大小")
+    sub_overlap = forms.IntegerField(min_value=0, required=False, label="子图重叠")
+    sub_verbose = forms.BooleanField(required=False, label="详细输出")
+    custom_template = forms.FileField(required=False, label="自定义模板文件")
+    template_fwhm_override = forms.FloatField(min_value=0, required=False, label="模板 FWHM 覆盖值, 图像像素")
+    custom_template_gain = forms.FloatField(min_value=0, required=False, label="自定义模板增益, e/ADU")
+    custom_template_saturation = forms.FloatField(min_value=0, required=False, label="饱和值, ADU")
 
-    subtraction_mode = forms.ChoiceField(choices=[('target', 'Target photometry'), ('detection', 'Transient detection')],
+    subtraction_mode = forms.ChoiceField(choices=[('target', '目标测光'), ('detection', '暂现源检测')],
                                          initial='detection', required=True, label="", widget=forms.RadioSelect)
 
     subtraction_method = forms.ChoiceField(choices=[('hotpants', 'HOTPANTS'), ('sfft', 'SFFT')],
-                                         initial='hotpants', required=False, label="Method")
+                                         initial='hotpants', required=False, label="方法")
 
-    sfft_kernel_poly_order = forms.IntegerField(min_value=0, max_value=4, initial=0, required=False, label="Kernel poly order")
-    sfft_bg_poly_order = forms.IntegerField(min_value=0, max_value=4, initial=0, required=False, label="Background poly order")
-    sfft_flux_poly_order = forms.IntegerField(min_value=0, max_value=4, initial=0, required=False, label="Flux poly order")
+    sfft_kernel_poly_order = forms.IntegerField(min_value=0, max_value=4, initial=0, required=False, label="核多项式阶数")
+    sfft_bg_poly_order = forms.IntegerField(min_value=0, max_value=4, initial=0, required=False, label="背景多项式阶数")
+    sfft_flux_poly_order = forms.IntegerField(min_value=0, max_value=4, initial=0, required=False, label="流量多项式阶数")
 
-    filter_vizier = forms.BooleanField(initial=False, required=False, label="Filter Vizier catalogues")
-    filter_skybot = forms.BooleanField(initial=False, required=False, label="Filter SkyBoT")
-    filter_prefilter = forms.BooleanField(initial=True, required=False, label="Pre-filtering")
-    filter_adjust = forms.BooleanField(initial=True, required=False, label="Sub-pixel adjustment")
-    filter_center = forms.CharField(required=False, empty_value=None, label="Center position to limit the search")
-    filter_sr0 = forms.FloatField(initial=1, min_value=0, required=False, label="Radius, deg")
+    filter_vizier = forms.BooleanField(initial=False, required=False, label="过滤 Vizier 星表")
+    filter_skybot = forms.BooleanField(initial=False, required=False, label="过滤 SkyBoT")
+    filter_prefilter = forms.BooleanField(initial=True, required=False, label="预过滤")
+    filter_adjust = forms.BooleanField(initial=True, required=False, label="亚像素调整")
+    filter_center = forms.CharField(required=False, empty_value=None, label="限制搜索的中心位置")
+    filter_sr0 = forms.FloatField(initial=1, min_value=0, required=False, label="半径, 度")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -432,7 +432,7 @@ class TaskSubtractionForm(forms.Form):
                 Column('custom_template_gain', css_class="col-md-2"),
                 Column('custom_template_saturation', css_class="col-md-2"),
                 Column(
-                    Submit('action_custom_mask', 'Make template mask', css_class='btn-secondary mb-1'),
+                    Submit('action_custom_mask', '制作模板掩模', css_class='btn-secondary mb-1'),
                     css_class="col-md-auto"
                 ),
                 css_class='align-items-end',
@@ -459,14 +459,14 @@ class TaskSubtractionForm(forms.Form):
 
 class SkyPortalUploadForm(forms.Form):
     ids = forms.CharField(
-        max_length=150, required=False, label="Task IDs to upload",
-        widget=forms.TextInput(attrs={'placeholder': 'Comma or whitespace separated list of task IDs to upload'})
+        max_length=150, required=False, label="要上传的任务 ID",
+        widget=forms.TextInput(attrs={'placeholder': '要上传的任务 ID 列表，逗号或空格分隔'})
     )
     types = forms.ChoiceField(choices=[
-        ('best', 'Best'), ('direct', 'Direct'), ('subtracted', 'Template-subtracted'),
-    ],  initial='best', required=False, label="Photometry type")
-    instrument = forms.ChoiceField(choices=[], initial=None, required=False, label="Instrument")
-    limit_only = forms.BooleanField(initial=False, required=False, label="Upload upper limit only")
+        ('best', '最佳'), ('direct', '直接'), ('subtracted', '模板相减'),
+    ],  initial='best', required=False, label="测光类型")
+    instrument = forms.ChoiceField(choices=[], initial=None, required=False, label="仪器")
+    limit_only = forms.BooleanField(initial=False, required=False, label="仅上传上限")
 
     def __init__(self, *args, **kwargs):
         instruments = kwargs.pop('instruments')
@@ -490,7 +490,7 @@ class SkyPortalUploadForm(forms.Form):
                     css_class="col-md-auto"
                 ),
                 Column(
-                    Submit('preview', 'Preview', css_class='btn-primary mb-1'),
+                    Submit('preview', '预览', css_class='btn-primary mb-1'),
                     css_class="col-md-auto"
                 ),
                 css_class='align-items-end',
@@ -509,19 +509,19 @@ class LightcurveSearchForm(forms.Form):
     coordinates = forms.CharField(
         max_length=200,
         required=True,
-        label="Sky Position",
-        widget=forms.TextInput(attrs={'placeholder': 'Object name or coordinates'}),
+        label="天空位置",
+        widget=forms.TextInput(attrs={'placeholder': '目标名称或坐标'}),
     )
     extra = forms.CharField(
         max_length=200,
         required=False,
-        label="Additional criteria",
-        widget=forms.TextInput(attrs={'placeholder': 'Filter by filename or title or username or group'}),
+        label="附加条件",
+        widget=forms.TextInput(attrs={'placeholder': '按文件名、标题、用户名或用户组筛选'}),
     )
-    radius = forms.FloatField(min_value=0, initial=5, required=True, label="Search radius, arcsec")
-    show_images = forms.BooleanField(initial=True, required=False, label="Show images")
-    targets_only = forms.BooleanField(initial=True, required=False, label="Target photometry only")
-    show_all = forms.BooleanField(initial=True, required=False, label="Tasks from all users")
+    radius = forms.FloatField(min_value=0, initial=5, required=True, label="搜索半径, 角秒")
+    show_images = forms.BooleanField(initial=True, required=False, label="显示图像")
+    targets_only = forms.BooleanField(initial=True, required=False, label="仅目标测光")
+    show_all = forms.BooleanField(initial=True, required=False, label="所有用户的任务")
 
     def __init__(self, *args, show_all=True, **kwargs):
         super().__init__(*args, **kwargs)
@@ -534,7 +534,7 @@ class LightcurveSearchForm(forms.Form):
                 Column('coordinates', css_class="col-md"),
                 Column('extra', css_class="col-md-4"),
                 Column('radius', css_class="col-md-2"),
-                Column(Submit('search', 'Search', css_class='btn-primary mb-1'), css_class="col-md-auto"),
+                Column(Submit('search', '搜索', css_class='btn-primary mb-1'), css_class="col-md-auto"),
                 css_class='align-items-end',
             ),
             Row(

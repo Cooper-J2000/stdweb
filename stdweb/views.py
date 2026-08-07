@@ -81,6 +81,30 @@ def list_files(request, path='', base=settings.DATA_PATH):
 
     fullpath = os.path.join(base, path)
 
+    # Delete a file (if requested) - local files browser only
+    if request.method == 'POST' and request.POST.get('action') == 'delete':
+        filename = sanitize_path(request.POST.get('filename', ''))
+        target = os.path.join(base, filename)
+
+        ok = False
+        if filename and os.path.lexists(target):
+            if os.path.islink(target):
+                # Deleting a symlink removes only the link itself, never its target
+                os.remove(target)
+                ok = True
+            elif os.path.isfile(target) and os.path.realpath(target).startswith(os.path.realpath(base) + os.sep):
+                # Regular file must stay inside the data root (blocks '..' escapes)
+                os.remove(target)
+                ok = True
+
+        if ok:
+            messages.success(request, "已删除 " + filename)
+            return HttpResponseRedirect(reverse('files', kwargs={'path': os.path.dirname(filename)}))
+        else:
+            messages.error(request, "无法删除 " + (filename or '空文件名'))
+
+        return HttpResponseRedirect(reverse('files', kwargs={'path': path}))
+
     context['path'] = path
     context['breadcrumb'] = make_breadcrumb(path, base="Files")
 
@@ -465,7 +489,7 @@ def upload_file(request, base=settings.DATA_PATH):
                 task.save() # to populate task.id
 
                 handle_uploaded_file(upload, os.path.join(task.path(), 'image.fits'))
-                messages.success(request, "File uploaded as task " + str(task.id))
+                messages.success(request, "文件已上传为任务 " + str(task.id))
 
                 tasks.append(task)
                 source = 'upload'
@@ -494,7 +518,7 @@ def upload_file(request, base=settings.DATA_PATH):
                     for _ in ['stack_method', 'stack_subtract_bg', 'stack_mask_cosmics']:
                         task.config[_] = form.cleaned_data[_]
 
-                    messages.success(request, f"Stacking {len(files)} images as task {task.id}")
+                    messages.success(request, f"正在叠加 {len(files)} 张图像为任务 {task.id}")
                     tasks.append(task)
                     source = 'stack'
 
@@ -518,14 +542,14 @@ def upload_file(request, base=settings.DATA_PATH):
 
                         if ext is None:
                             shutil.copyfile(fullpath, os.path.join(task.path(), 'image.fits'))
-                            messages.success(request, f"File {path} copied as task " + str(task.id))
+                            messages.success(request, f"文件 {path} 已复制为任务 " + str(task.id))
 
                         else:
                             ext = int(ext[0])
                             image = fits.getdata(fullpath, ext)
                             header = fits.getheader(fullpath, ext)
                             fits.writeto(os.path.join(task.path(), 'image.fits'), image, header)
-                            messages.success(request, f"Extension {ext} of {path} copied as task " + str(task.id))
+                            messages.success(request, f"{path} 的扩展名 {ext} 已复制为任务 " + str(task.id))
 
                         localpaths[task.id] = fullpath
 
@@ -547,14 +571,14 @@ def upload_file(request, base=settings.DATA_PATH):
                     preset = models.Preset.objects.get(id=int(form.cleaned_data.get('preset')))
                     task.config.update(preset.config)
                     if len(tasks) == 1:
-                        messages.success(request, "Config updated with preset " + preset.name + " : " + str(preset.config))
+                        messages.success(request, "配置已更新为预设 " + preset.name + " : " + str(preset.config))
 
                     if preset.files:
                         # Copy preset files into task folder
                         for filename in preset.files.split('\n'):
                             shutil.copy(filename, task.path())
                             if len(tasks) == 1:
-                                messages.success(request, filename + " copied into the task")
+                                messages.success(request, filename + " 已复制到任务")
 
                     log_details['preset'] = preset.name
 
@@ -592,7 +616,7 @@ def upload_file(request, base=settings.DATA_PATH):
                 return HttpResponseRedirect(reverse('tasks', kwargs={'id': task.id}))
 
         else:
-            messages.error(request, "Error uploading file")
+            messages.error(request, "上传文件出错")
 
     context = {'form': form}
     return TemplateResponse(request, 'index.html', context=context)
@@ -727,7 +751,7 @@ def profile(request):
         if 'regenerate_token' in request.POST:
             token.delete()
             token = Token.objects.create(user=request.user)
-            messages.success(request, 'API token regenerated successfully')
+            messages.success(request, 'API 令牌已重新生成')
             return HttpResponseRedirect(reverse('profile'))
 
     context = {

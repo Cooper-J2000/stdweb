@@ -39,7 +39,7 @@
                 {% if action == 'upload' %}
                   <br>
                   {% if task.status == 'success' %}
-                    <span class="text-success">Successfully uploaded to SkyPortal</span>
+                    <span class="text-success">已成功上传至 SkyPortal</span>
                   {% else %}
                     <span class="text-danger">{{ task.status }}</span>
                   {% endif %}
@@ -51,7 +51,7 @@
 
         {% if action != 'upload' %}
           <button type="submit" name="action" value="upload" class="btn btn-danger"
-                  title="Upload measurements to SkyPortal">Upload</button>
+                  title="上传测光结果至 SkyPortal">上传</button>
         {% endif %}
 
       {% else %}

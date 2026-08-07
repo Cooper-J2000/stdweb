@@ -106,7 +106,7 @@
 
      // Also change the label if template is already uploaded
      if ({% if 'custom_template.fits' in files %}true{% else %}false{% endif %}){
-       $('#div_id_custom_template label').text('Replace uploaded custom template file');
+       $('#div_id_custom_template label').text('替换已上传的自定义模板文件');
        $('#div_id_custom_template label').addClass('text-success');
      }
    });
@@ -162,8 +162,8 @@
 {% endblock %}
 
 {% block ptitle %}
-  {% if task.celery_id %}(Running){% endif %}
-  Task {{ task.id }} : STDWeb
+  {% if task.celery_id %}(运行中){% endif %}
+  任务 {{ task.id }} : STDWeb
 {% endblock %}
 
 {% block title_div %}{% endblock %}
@@ -171,7 +171,7 @@
 {% block content %}
 
   {% if not task %}
-    <p>Task not found</p>
+    <p>未找到任务</p>
   {% else %}
 
     <h2>
@@ -185,7 +185,7 @@
              class="fst-italic ps-2 border-start border-4 border-secondary position-relative"
              style="--bs-border-opacity: .3; {% if not task.title %}display: none;{% endif %}
                     {% if user_may_submit and not task.celery_id %}cursor: pointer;{% endif %}"
-             title="{% if user_may_submit and not task.celery_id %}Click to edit{% endif %}">
+             title="{% if user_may_submit and not task.celery_id %}点击编辑{% endif %}">
           <span id="title-text">{{ task.title|linebreaksimple }}</span>
           {% if user_may_submit and not task.celery_id %}
           <i class="fa fa-pencil position-absolute end-0 top-0 text-muted"
@@ -195,7 +195,7 @@
 
         {% if not task.title and user_may_submit and not task.celery_id %}
         <button id="title-add-btn" class="btn btn-sm btn-link text-muted p-0" style="text-decoration: none;">
-          <i class="fa fa-plus-circle"></i> Add title or description
+          <i class="fa fa-plus-circle"></i> 添加标题或描述
         </button>
         {% endif %}
 
@@ -205,17 +205,17 @@
                     class="form-control form-control-sm mb-1"
                     rows="2"
                     maxlength="250"
-                    placeholder="Add title or description..."
+                    placeholder="添加标题或描述..."
                     style="resize: none; overflow: hidden; min-height: 50px;">{{ task.title }}</textarea>
           <div>
             <button id="title-save-btn" class="btn btn-sm btn-success">
-              <i class="fa fa-check"></i> Save
+              <i class="fa fa-check"></i> 保存
             </button>
             <button id="title-cancel-btn" class="btn btn-sm btn-secondary">
-              <i class="fa fa-times"></i> Cancel
+              <i class="fa fa-times"></i> 取消
             </button>
             <span class="text-muted small ms-2">
-              <kbd>Ctrl+Enter</kbd> to save, <kbd>Esc</kbd> to cancel
+              <kbd>Ctrl+Enter</kbd> 保存，<kbd>Esc</kbd> 取消
             </span>
           </div>
         </div>
@@ -243,36 +243,36 @@
     });
     </script>
     <div>
-      <a href="{% url 'task_files' id=task.id %}" class="text-decoration-none text-body" title="Browse task files">
+      <a href="{% url 'task_files' id=task.id %}" class="text-decoration-none text-body" title="浏览任务文件">
         <i class="fa fa-folder-open"></i>
       </a>
-      Task {{ task.id }} created by <span class="text-primary fw-bold">{{ task.user|user }}</span> on {{ task.created|timestamp }} - {{ task.created|naturaltime }}
+      任务 {{ task.id }} 由 <span class="text-primary fw-bold">{{ task.user|user }}</span> 创建于 {{ task.created|timestamp }} - {{ task.created|naturaltime }}
       {% if not user_may_submit %}
         <br>
-        <span class="text-danger fw-bold">Task is read-only</span>
+        <span class="text-danger fw-bold">任务为只读</span>
       {% endif %}
     </div>
 
     {% if task_groups or shareable_groups %}
     <div class="mb-2" id="task-groups">
-      <span class="text-muted">Shared with:</span>
+      <span class="text-muted">共享给:</span>
       <span id="task-groups-badges">
         {% for g in task_groups %}
-          <span class="badge bg-primary-subtle text-secondary me-1 {% if g.id not in user_group_ids %} border border-danger{% endif %}" data-group-id="{{ g.id }}" {% if g.id not in user_group_ids %}title="Shared with a group you do not belong to"{% endif %}>
+          <span class="badge bg-primary-subtle text-secondary me-1 {% if g.id not in user_group_ids %} border border-danger{% endif %}" data-group-id="{{ g.id }}" {% if g.id not in user_group_ids %}title="与你所属用户组共享"{% endif %}>
             {{ g.name }}
             {% if user_may_submit and not task.celery_id and g in shareable_groups %}
-              <a href="#" class="task-group-remove text-secondary text-decoration-none fw-bold" data-group-id="{{ g.id }}" title="Remove">&times;</a>
+              <a href="#" class="task-group-remove text-secondary text-decoration-none fw-bold" data-group-id="{{ g.id }}" title="移除">&times;</a>
             {% endif %}
           </span>
         {% empty %}
-          <span class="text-muted fst-italic">nobody</span>
+          <span class="text-muted fst-italic">无</span>
         {% endfor %}
       </span>
       {% if user_may_submit and not task.celery_id and shareable_groups %}
         <div class="dropdown d-inline">
           <button class="btn btn-sm text-muted p-0 ms-1" type="button"
-                  data-bs-toggle="dropdown" data-bs-auto-close="outside" title="Share this task with groups">
-            <i class="fa fa-share-alt"></i> Share
+                  data-bs-toggle="dropdown" data-bs-auto-close="outside" title="与用户组共享此任务">
+            <i class="fa fa-share-alt"></i> 共享
           </button>
           <div class="dropdown-menu p-2" style="min-width: 12rem;">
             {% for g in shareable_groups %}
@@ -299,18 +299,18 @@
           groups.forEach(function(g){
             var badge = $('<span class="badge bg-primary-subtle text-secondary me-1"></span>').attr('data-group-id', g.id);
             if(userGroupIds.indexOf(String(g.id)) === -1){
-              badge.addClass('border border-danger').attr('title', 'Shared with a group you do not belong to');
+              badge.addClass('border border-danger').attr('title', '与你所属用户组共享');
             }
             badge.append(document.createTextNode(g.name));
             if(shareableIds.indexOf(String(g.id)) !== -1){
               badge.append(' ');
-              $('<a href="#" class="task-group-remove text-secondary text-decoration-none fw-bold" title="Remove">&times;</a>')
+              $('<a href="#" class="task-group-remove text-secondary text-decoration-none fw-bold" title="移除">&times;</a>')
                 .attr('data-group-id', g.id).appendTo(badge);
             }
             badges.append(badge);
           });
         } else {
-          badges.append('<span class="text-muted fst-italic">nobody</span>');
+          badges.append('<span class="text-muted fst-italic">无</span>');
         }
       }
 
@@ -340,30 +340,30 @@
     {% endif %}
     {% endif %}
     <div class="mb-2 {% if task.celery_id %}sticky-top bg-body border-bottom pb-2{% endif %}">
-      State:
+      状态:
       {% if task.celery_id %}
         <span class="spinner-border spinner-border-sm text-primary" role="status"></span>
       {% endif %}
-      <b id="state" class="text-{% if 'failed' in task.state or 'cancelled' in task.state %}danger{% elif task.celery_id %}primary{% else %}success{% endif %}">{{ task.state }}</b> on {{ task.modified|timestamp }} - {{ task.modified|naturaltime }}
+      <b id="state" class="text-{% if 'failed' in task.state or 'cancelled' in task.state %}danger{% elif task.celery_id %}primary{% else %}success{% endif %}">{{ task.state|state_cn }}</b> 更新于 {{ task.modified|timestamp }} - {{ task.modified|naturaltime }}
       {% if task.celery_id and user_may_submit %}
         <!-- Help popover -->
-        <div class="span-help-popover d-inline float-end" title="Task is running">
+        <div class="span-help-popover d-inline float-end" title="任务运行中">
           <p>
-            The image processing task is running on the server. The page will be automatically re-loaded when processing is finished.
+            图像处理任务正在服务器上运行。处理完成后页面将自动重新加载。
           </p>
           <p>
-            If necessary, you may cancel the running task by clicking on the running task queue id and using corresponding button on the running task page.
+            如有必要，可点击运行中的任务队列 ID，在任务页面上使用相应按钮取消运行中的任务。
           </p>
         </div>
 
         <br>
-        Queue task id:
+        队列任务 ID:
         <a href="{% url 'queue' id=task.celery_id %}">{{ task.celery_id }}</a>
         <!-- (<span id="celery_state"></span>) -->
         {% if user_may_submit and False %}
           <form action="{% url 'queue' id=task.celery_id %}" method="POST">
             {% csrf_token %}
-            <button type="submit" name="action" value="terminatetask" class="btn btn-danger">Terminate</button>
+            <button type="submit" name="action" value="terminatetask" class="btn btn-danger">终止</button>
           </form>
         {% endif %}
       {% endif %}
@@ -374,8 +374,8 @@
       <h3 class="collapse-toggle-dots {% if 'inspect.log' in files %}collapsed{% endif %}"
           data-bs-toggle="collapse" data-bs-target="#stackingLog"
           aria-expanded="{% if 'inspect.log' in files %}false{% else %}true{% endif %}"
-          aria-controls="stackingLog" title="Show/hide stacking log">
-        Stacking
+          aria-controls="stackingLog" title="显示/隐藏叠加日志">
+        叠加
       </h3>
       <div class="row mb-2 collapse {% if 'inspect.log' not in files %}show{% endif %}" id="stackingLog">
         <div class="col">
@@ -386,30 +386,30 @@
 
     <!-- Header -->
     {% if 'image.fits' in files %}
-      {% wrapwith 'wrapper_card_collapsed.html' with title='Original FITS header' %}
+      {% wrapwith 'wrapper_card_collapsed.html' with title='原始 FITS 头' %}
       <pre><code class="fits-header">{% task_fits_header task 'image.fits' %}</code></pre>
       {% endwrapwith %}
     {% endif %}
 
     <hr>
-    <h3>Initial inspection and masking
+    <h3>初始检查与掩模
       {% if user_may_submit %}
         <!-- Help popover -->
-        <span class="span-help-popover float-end" title="Initial inspection and masking">
+        <span class="span-help-popover float-end" title="初始检查与掩模">
           <p>
-            On this stage, several important parameters (gain, saturation level, filter name, etc) are extracted from FITS header. Also, the target name is resolved to coordinates, to be used later for forced photometry. All values may be overwritten by filling the form values.
+            在此阶段，将从 FITS 头中提取若干重要参数（增益、饱和值、滤光片名称等），并将目标名称解析为坐标，供后续强制测光使用。所有值均可通过填写表单覆盖。
           </p>
           <p>
-            Multiple targets may be listed, one per line. The first one will be the primary one, the rest may be used to perform forced photometry at additional positions around it. Every target may be defined by either Simbad or TNS resolvable name, or by a coordinate string in common formats (pair of degrees, or HH MM SS DD MM SS, etc).
+            可列出多个目标，每行一个。第一个为主目标，其余目标可用于在其周围额外位置进行强制测光。每个目标可用 Simbad 或 TNS 可解析的名称定义，或用常见格式的坐标字符串（十进制度数，或 HH MM SS DD MM SS 等）。
           </p>
           <p>
-            The mask is created from NaN values in the image, pixels above saturation level, and from optional cosmic ray detection. The latter is not always working perfectly, so disable it if it starts masking the actual stars! If the image has unusable regions (e.g. overscans) around it - you may mask them manually using custom mask editor.
+            掩模由图像中的 NaN 值、超过饱和值的像素以及可选的宇宙线检测结果生成。宇宙线检测并不总是完美，如果它开始掩盖真实恒星请将其禁用！如果图像周围有不可用区域（如过扫描区），可使用自定义掩模编辑器手动掩模。
           </p>
           <p>
-            Cleanup operation will remove all processing results and settings, except for the image itself. Archiving will only remove generated files, but will keep the settings so that the processing may be repeated in exactly the same configuration.
+            清理操作将删除除图像本身外的所有处理结果和设置。归档只删除生成的文件，但保留设置，以便用完全相同的配置重复处理。
           </p>
           <p>
-            Original image may be modified by the operations hidden under Unsafe controls. There you may either crop the image (using actual pixel coordinates or offsets from the edges), or incorporate refined / blind-matched WCS into the header, so that image with proper astrometry may be downloaded. Also, you may duplicate the task, or delete it completely if you are done with this image.
+            原始图像可通过危险操作下的功能修改。在那里可以裁剪图像（使用实际像素坐标或边缘偏移），或将精化/盲匹配后的 WCS 写入头部，从而下载具有正确天体测量的图像。此外，可以复制任务，或在完成此图像后将其完全删除。
           </p>
         </span>
       {% endif %}
@@ -421,16 +421,16 @@
         <fieldset class="small" {% if task.celery_id %}disabled{% endif %}>
           {% crispy form_inspect %}
 
-          <button type="submit" name="action" value="inspect_image" class="btn btn-primary">Run initial inspection</button>
+          <button type="submit" name="action" value="inspect_image" class="btn btn-primary">运行初始检查</button>
 
           <button type="submit" name="action" value="make_custom_mask" class="btn btn-secondary"
-                  title="Create custom mask to define usable image regions">Make custom mask</button>
+                  title="创建自定义掩模以定义可用图像区域">制作自定义掩模</button>
 
           <button type="submit" name="action" value="archive_task" class="btn btn-warning"
-                  title="Delete all generated files">Archive</button>
+                  title="删除所有生成的文件">归档</button>
 
           <button type="submit" name="action" value="cleanup_task" class="btn btn-danger"
-                  title="Delete all processing results and configurations">Cleanup</button>
+                  title="删除所有处理结果和配置">清理</button>
 
           <!-- Unsafe controls -->
           <button class="btn btn-light collapse-chevron-horizontal collapsed ms-4 me-4" type="button"
@@ -438,23 +438,23 @@
                   data-bs-target="#unsafeButtons"
                   aria-expanded="false"
                   aria-controls="unsafeButtons"
-                  title="Show / hide unsafe controls">
+                  title="显示/隐藏危险操作">
           </button>
 
           <span id="unsafeButtons" class="collapse collapse-horizontal collapsed">
             <!-- Re-stack -->
             {% if task.config.stack_filenames %}
               <button type="submit" name="action" value="stack" class="btn btn-secondary"
-                      title="Re-stack the original images into this task">Re-stack</button>
+                      title="将原始图像重新叠加到此任务">重新叠加</button>
             {% endif %}
 
             <!-- Preprocess -->
             <button type="submit" name="action" value="preprocess" class="btn btn-secondary"
-                    title="Preprocess image (destripe, crop, background removal) to remove artifacts">Preprocess</button>
+                    title="预处理图像（去条纹、裁剪、去背景）以移除伪影">预处理</button>
 
             <!-- Fix header -->
             <button type="submit" name="action" value="fix_image" class="btn btn-warning {% if 'image.wcs' not in files %}disabled{% endif %}"
-                    title="Update the image header with refined WCS">Fix header</button>
+                    title="用精化后的 WCS 更新图像头">修复头部</button>
 
             <!-- Raw config hide/show -->
             <button type="button" class="btn btn-light collapse-chevron collapsed"
@@ -462,20 +462,20 @@
                     data-bs-target="#rawConfig"
                     aria-expanded="false"
                     aria-controls="rawConfig"
-                    title="Show raw JSON config">Config&nbsp;</button>
+                    title="显示原始 JSON 配置">配置&nbsp;</button>
 
             <button type="submit" name="action" value="duplicate_task" class="btn btn-info"
-                    title="Duplicate this task" formtarget="_blank">Duplicate</button>
+                    title="复制此任务" formtarget="_blank">复制</button>
 
             <button type="submit" name="action" value="delete_task" class="btn btn-danger"
-                    title="Permanently delete this task">Delete</button>
+                    title="永久删除此任务">删除</button>
           </span>
 
           <!-- Raw JSON config -->
           <div id="rawConfig" class="collapse collapsed mt-1">
             {{ form_inspect.raw_config | as_crispy_field }}
             <button type="submit" name="action" value="update_config" class="btn btn-warning"
-                    title="Update config">Update!</button>
+                    title="更新配置">更新!</button>
           </div>
 
         </fieldset>
@@ -514,18 +514,18 @@
     <!-- Photometry and astrometry -->
     {% if 'inspect.log' in files and 'mask.fits' in files %}
       <hr>
-      <h3>Photometry and astrometry
+      <h3>测光与天体测量
         {% if user_may_submit %}
           <!-- Help popover -->
-          <span class="span-help-popover float-end" title="Object detection, astrometry and photometry">
+          <span class="span-help-popover float-end" title="目标检测、天体测量与测光">
             <p>
-              Object detection is controlled by the first row of values. S/N here influences both rejection of detections with too large errors, and magnitude limit estimations.
+              目标检测由第一行参数控制。此处的 S/N 同时影响误差过大的检测剔除和星等极限估算。
             </p>
             <p>
-              Second row controls aperture photometry at the positions of detected objects. The sizes of apertures, and optionally local sky background estimation annuli, are specified in units of average FWHM measured on the detection step. It is also possible to manually override FWHM value by setting it here.
+              第二行控制检测到目标位置处的孔径测光。孔径大小（以及可选的天光背景估算环）以检测阶段测得的平均 FWHM 为单位指定。也可以在此手动覆盖 FWHM 值。
             </p>
             <p>
-              Photometric calibration (third row) depends on the selection of primary filter and reference catalogue. The catalogue will be downloaded from Vizier, with optionally limiting it to only have stars brighter than given magnitude. Catalogue should not be much deeper than the image, as it may lead to spurious matches. Photometric solution will use specified polynomial order of zero point spatial dependency, and if requested will use color term relevant for the specified catalogue. Supported catalogues and filters are:
+              光度定标（第三行）取决于主滤光片和参考星表的选择。星表将从 Vizier 下载，可选择仅保留亮于给定星等的恒星。星表不宜比图像深太多，否则可能导致虚假匹配。光度解将使用指定的零点空间依赖多项式阶数，如需要还会使用与所选星表相关的颜色项。支持的星表与滤光片：
               <ul class="mb-1">
                 {% for cat in supported_catalogs.values %}
                   <li><b>{{ cat.name }}</b> [{{ cat.filters|join:", " }}]</li>
@@ -533,10 +533,10 @@
               </ul>
             </p>
             <p>
-              Photometric system (zero point) for all Johnson-Cousins (U, B, V, R, I), 2MASS (J, H, Ks)  and Gaia (G, BP, RP) filters above is Vega, and for Sloan-like (ugrizy) filters is Pan-STARRS (for all except u which is SDSS), regardless of the actual catalogue selected.
+              上述所有 Johnson-Cousins（U, B, V, R, I）、2MASS（J, H, Ks）和 Gaia（G, BP, RP）滤光片的光度系统（零点）为 Vega，Sloan 类（ugrizy）滤光片为 Pan-STARRS（u 除外，为 SDSS），与实际选择的星表无关。
             </p>
             <p>
-              Astrometric refinement uses positions of detected objects and reference catalogue to refine existing astrometric solution from FITS header. The results are stored to the file, and will be re-used on subsequent processing runs. If no initial astrometric solution exist, WCS blind-matching may be initiated. The process may be limited to specific part of the sky, as well as to a range of pixel scales.
+              天体测量精化利用检测目标的位置和参考星表来精化 FITS 头中的现有天体测量解。结果保存到文件，并在后续处理中复用。如果没有初始天体测量解，可启动 WCS 盲匹配。该过程可限定到天空的特定区域以及像素比例范围。
             </p>
           </span>
         {% endif %}
@@ -549,7 +549,7 @@
 
             {% crispy form_photometry %}
 
-            <button type="submit" name="action" value="photometry_image" class="btn btn-primary">Run photometry</button>
+            <button type="submit" name="action" value="photometry_image" class="btn btn-primary">运行测光</button>
           </fieldset>
         </form>
       {% endif %}
@@ -595,7 +595,7 @@
               {% if task.config.skyportal_instrument_name %}
                 <input type="hidden" name="instrument" value="{{ task.config.skyportal_instrument_name|skyportal_instrument_id }}"/>
               {% endif %}
-              <button type="submit" name="action" value="init" class="btn btn-secondary">Upload Photometry to SkyPortal</button>
+              <button type="submit" name="action" value="init" class="btn btn-secondary">上传测光结果至 SkyPortal</button>
             </fieldset>
           </form>
         {% endif %}
@@ -603,14 +603,14 @@
 
       <hr>
       <h3>
-        Target in direct image
+        原图中的目标
         <!-- Help popover -->
-        <span class="span-help-popover float-end" title="Target in direct image">
+        <span class="span-help-popover float-end" title="原图中的目标">
           <p>
-            Cutouts show the target position in the original image, along with the same part of the sky from Pan-STARRS or SkyMapper (depending on the hemisphere) surveys, and the mask. The latter helps identifying possible problems due to cosmic rays or saturation.
+            Cutout 显示目标在原始图像中的位置，以及 Pan-STARRS 或 SkyMapper（取决于天区所在半球）巡天中同一区域的天区图和掩模。掩模有助于识别宇宙线或饱和导致的问题。
           </p>
           <p>
-            Overlay controls allow to adjust the scaling and stretching of the sub-images, and to turn on the reticle marking the target position in them.
+            叠加控制可调整子图的缩放与拉伸，并可开启标记目标位置的十字线。
           </p>
         </span>
       </h3>
@@ -627,18 +627,18 @@
     {% if 'objects.parquet' in files and 'photometry.pickle' in files %}
       <hr>
       <h3>
-        Simple transient detection
+        简单暂现源检测
         {% if user_may_submit %}
           <!-- Help popover -->
-          <span class="span-help-popover float-end" title="Simple transient detection">
+          <span class="span-help-popover float-end" title="简单暂现源检测">
             <p>
-              Simple catalogue-based transient detection allows finding the transients that are well-separated from the rest of objects in the image, and thus easily detectable in original (non-template-subtracted) image. The algorithm uses the list of objects detected during photometric calibration step, and rejects the ones that match known catalogue stars from common catalogues (Gaia eDR3, Pan-STARRS DR1, SkyMapper DR4, ...). Moreover, all flagged objects (i.e. having masked pixels within the aperture) will be rejected, along with the objects rejected during the pre-filtering (machine-learning based shape classifier) step during the photometry. Some additional routine will be also run to reject blended objects, and the candidates will be checked against positions of known Solar system objects using SkyBoT service.
+              基于星表的简单暂现源检测可找出与图像中其他目标分离良好、因此在原始（未相减）图像中易于检测的暂现源。算法使用光度定标阶段检测到的目标列表，剔除与常见星表（Gaia eDR3、Pan-STARRS DR1、SkyMapper DR4 等）恒星匹配的对象。此外，所有被标记的目标（即孔径内包含被掩模像素的）以及测光预过滤（基于机器学习的形状分类器）阶段剔除的对象都会被排除。还会运行额外例程剔除混合源，并使用 SkyBoT 服务检查候选体是否与已知太阳系天体位置重合。
             </p>
             <p>
-              The routine will try to compare the brightness of transient candidates with catalogue matches, and will keep matches that are brighter than user-specified limit w.r.t. the catalogue, to avoid confusion in denser fields with too many faint catalogue stars around. If the limit is not specified, all positional matches will be rejected - use it if the routine keeps too many obviously wrong candidates.
+              例程会将暂现源候选体的亮度与星表匹配对象比较，仅保留比星表亮用户指定极限的匹配，以避免在周围暗星过多的致密天区中造成混淆。如果未指定极限，所有位置匹配都会被剔除——当例程保留过多明显错误的候选体时请使用此功能。
             </p>
             <p>
-              In order to further restrict the list of candidates, you may specify the sky region where to look for transients (so, simple cone search with specified center and radius will be used). Moreover, you may specify the list of tasks containing the images of the same sky area - they will be used to reject everything that did not appear in their object lists. This way, you will only get the candidates that appear in all the images from all specified tasks.
+              为进一步缩小候选体列表，可指定搜索暂现源的天区（即使用指定中心和半径的简单锥形搜索）。还可以指定包含同一片天区图像的任务列表——它们将用于剔除未出现在其目标列表中的一切。这样，只会得到所有指定任务图像中都出现的候选体。
             </p>
           </span>
         {% endif %}
@@ -651,7 +651,7 @@
 
             {% crispy form_transients_simple %}
 
-            <button type="submit" name="action" value="transients_simple_image" class="btn btn-primary">Run simple transient detection</button>
+            <button type="submit" name="action" value="transients_simple_image" class="btn btn-primary">运行简单暂现源检测</button>
           </fieldset>
         </form>
       {% endif %}
@@ -682,19 +682,19 @@
       {% if candidates_simple %}
         <hr>
         <h3>
-          Transient candidates from simple transient detection
-          <span class="span-help-popover float-end" title="Transient candidates from simple transient detection">
+          简单暂现源检测的候选体
+          <span class="span-help-popover float-end" title="简单暂现源检测的候选体">
             <p>
-              Cutouts show the target position in the original image, sky atlas, detection footprint, and the mask. The latter helps identifying possible problems due to template bad regions, cosmic rays or saturation, while the footprint displays the spread of the pixels above detection threshold useful for understanding what exactly triggered the detection.
+              Cutout 显示目标在原始图像中的位置、天区图、检测足迹和掩模。掩模有助于识别模板坏区、宇宙线或饱和导致的问题，足迹则显示超过检测阈值的像素分布，有助于理解触发检测的确切原因。
             </p>
             <p>
-              The measurements above cutouts correspond to aperture photometry at the candidate position in the difference image, with the same parameters as used above for photometric calibration, so the resulting magnitude (if measured) is in the same system. Detection limit is derived from the locally estimated background noise and corresonds to the same S/N level as used for object detection above.
+              Cutout 上方的测量值对应候选体位置在差分图中的孔径测光，使用与上面光度定标相同的参数，因此所得星等（若测得）在同一系统内。探测极限由局部估计的背景噪声导出，对应上面目标检测使用的同一 S/N 水平。
             </p>
             <p>
-              Overlay controls allow to adjust the scaling and stretching of the sub-images, and to turn on the reticle marking the target position in them.
+              叠加控制可调整子图的缩放与拉伸，并可开启标记目标位置的十字线。
             </p>
             <p>
-              The link below the cutouts allows to download single multi-extension FITS file containing all the cutouts, along with the information on transient position and metadata in the header.
+              Cutout 下方的链接可下载包含所有 cutout 的单个多扩展 FITS 文件，以及头部中的暂现源位置信息和元数据。
             </p>
           </span>
         </h3>
@@ -708,7 +708,7 @@
         {% if candidates_simple|length > 10 %}
           <div class="mb-4 text-center">
             <a class="btn btn-primary" href="{% url 'task_candidates_simple' id=task.id %}" role="button">
-              See the rest of {{ candidates_simple|length }} candidates
+              查看其余 {{ candidates_simple|length }} 个候选体
             </a>
           </div>
         {% endif %}
@@ -720,12 +720,12 @@
     {% if 'photometry.pickle' in files %}
       <hr>
       <h3>
-        Template subtraction
+        模板相减
         {% if user_may_submit %}
           <!-- Help popover -->
-          <span class="span-help-popover float-end" title="Template subtraction and transient detection">
+          <span class="span-help-popover float-end" title="模板相减与暂现源检测">
             <p>
-              The template may be either uploaded as a FITS file (then you may wish to specify correct gain and saturation level for it to ensure reliable subtraction), or downloaded from one of online sources:
+              模板既可以是上传的 FITS 文件（此时建议为其指定正确的增益和饱和值以确保相减可靠），也可以从以下在线来源下载：
               <ul class="mb-2">
                 {% for tmpl in supported_templates.values %}
                   {% if 'filters' in tmpl %}
@@ -733,19 +733,19 @@
                   {% endif %}
                 {% endfor %}
               </ul>
-              HiPS surveys do not have proper masks for saturated objects or cosmetic defects, so results will be less reliable.
+              注意 HiPS 巡天没有针对饱和天体或瑕疵的掩模，结果可靠性会稍差。
             </p>
             <p>
-              To ease the subtraction, the image will be split into sub-images with approximately the specified size. Sub-images will overlap by the specified amount of pixels for improving the stability of subtraction routine near sub-image edges, but these regions will be excluded from actual transient detection, so no repeating transients will appear in the output. In the target photometry mode, just a single sub-image around it will be selected.
+              为简化相减，图像将按指定大小拆分为子图。子图间按指定像素数重叠，以提高子图边缘附近相减例程的稳定性，但这些重叠区域会从实际暂现源检测中排除，因此输出中不会出现重复的暂现源。在目标测光模式下，仅选择目标周围单个子图。
             </p>
             <p>
-              Image subtraction will be handled by HOTPANTS. The code will try to automatically create proper noise maps for both image and the template, and select optimal HOTPANTS parameters for the subtraction. However, you may override them, or add extra parameters, by providing them as a JSON string. The most important parameters to adjust are <code>ko</code> and <code>bgo</code> that control the spatial orders of convolution kernel and backround inside the regions used for constructing the subtraction model.
+              图像相减由 HOTPANTS 处理。代码会自动为图像和模板创建合适的噪声图，并为相减选择最优 HOTPANTS 参数。当然，也可以通过 JSON 字符串覆盖或附加参数。最常调整的参数是 <code>ko</code> 和 <code>bgo</code>，它们控制用于构建相减模型的区域内卷积核与背景的空间阶数。
             </p>
             <p>
-              Transient detection is performed in a difference image using noise model produced by HOTPANTS and combined mask. Parameters for the detection and measurement, as well as photometric calibration of the candidates are the same as used for photometric calibration above.
+              暂现源检测在差分图中进行，使用 HOTPANTS 生成的噪声模型和合并掩模。检测、测量参数以及候选体的光度定标与上面光度定标使用的相同。
             </p>
             <p>
-              Transient candidates will be filtered to exclude the ones with masked pixels within the aperture, as well as the ones positionally coincident (within half FWHM radius) with the objects from Pan-STARRS DR1 and SkyMapper DR1.1 catalogues.
+              暂现源候选体将经过过滤，剔除孔径内包含被掩模像素的候选体，以及与 Pan-STARRS DR1 和 SkyMapper DR1.1 星表中目标位置重合（半 FWHM 半径内）的候选体。
             </p>
           </span>
         {% endif %}
@@ -758,7 +758,7 @@
 
             {% crispy form_subtraction %}
 
-            <button type="submit" name="action" value="subtract_image" class="btn btn-primary">Run subtraction</button>
+            <button type="submit" name="action" value="subtract_image" class="btn btn-primary">运行相减</button>
           </fieldset>
         </form>
       {% endif %}
@@ -804,7 +804,7 @@
               {% if task.config.skyportal_instrument_name %}
                 <input type="hidden" name="instrument" value="{{ task.config.skyportal_instrument_name|skyportal_instrument_id }}"/>
               {% endif %}
-              <button type="submit" name="action" value="init" class="btn btn-secondary">Upload Photometry to SkyPortal</button>
+              <button type="submit" name="action" value="init" class="btn btn-secondary">上传测光结果至 SkyPortal</button>
             </fieldset>
           </form>
         {% endif %}
@@ -812,16 +812,16 @@
 
       <hr>
       <h3>
-        Target in difference (template-subtracted) image
-        <span class="span-help-popover float-end" title="Target in difference image">
+        差分（模板相减）图中的目标
+        <span class="span-help-popover float-end" title="差分图中的目标">
           <p>
-            Cutouts show the target position in the original image, template, template convolved with matching kernel which is used for actual subtraction, difference image, and the mask. The latter helps identifying possible problems due to cosmic rays or saturation.
+            Cutout 显示目标在原始图像、模板、经匹配核卷积（实际相减所用）的模板、差分图和掩模中的位置。掩模有助于识别宇宙线或饱和导致的问题。
           </p>
           <p>
-            The measurements above cutouts correspond to forced photometry at the target position in the difference image, with the same parameters as used above for photometric calibration, so the resulting magnitude (if measured) is in the same system. Upper limit is derived from the locally estimated background noise and corresonds to the same S/N level as used for object detection above.
+            Cutout 上方的测量值对应目标位置在差分图中的强制测光，使用与上面光度定标相同的参数，因此所得星等（若测得）在同一系统内。上限由局部估计的背景噪声导出，对应上面目标检测使用的同一 S/N 水平。
           </p>
           <p>
-            Overlay controls allow to adjust the scaling and stretching of the sub-images, and to turn on the reticle marking the target position in them.
+            叠加控制可调整子图的缩放与拉伸，并可开启标记目标位置的十字线。
           </p>
         </span>
       </h3>
@@ -836,19 +836,19 @@
     {% if candidates %}
       <hr>
       <h3>
-        Transient candidates in difference (template-subtracted) image
-        <span class="span-help-popover float-end" title="Transient candidates in difference image">
+        差分（模板相减）图中的暂现源候选体
+        <span class="span-help-popover float-end" title="差分图中的暂现源候选体">
           <p>
-            Cutouts show the target position in the original image, template, template convolved with matching kernel which is used for actual subtraction, difference image, detection footprint, and the mask. The latter helps identifying possible problems due to template bad regions, cosmic rays or saturation, while the footprint displays the spread of the pixels above detection threshold useful for understanding what exactly triggered the detection.
+            Cutout 显示目标在原始图像、模板、经匹配核卷积（实际相减所用）的模板、差分图、检测足迹和掩模中的位置。掩模有助于识别模板坏区、宇宙线或饱和导致的问题，足迹则显示超过检测阈值的像素分布，有助于理解触发检测的确切原因。
           </p>
           <p>
-            The measurements above cutouts correspond to aperture photometry at the candidate position in the difference image, with the same parameters as used above for photometric calibration, so the resulting magnitude (if measured) is in the same system. Detection limit is derived from the locally estimated background noise and corresonds to the same S/N level as used for object detection above.
+            Cutout 上方的测量值对应候选体位置在差分图中的孔径测光，使用与上面光度定标相同的参数，因此所得星等（若测得）在同一系统内。探测极限由局部估计的背景噪声导出，对应上面目标检测使用的同一 S/N 水平。
           </p>
           <p>
-            Overlay controls allow to adjust the scaling and stretching of the sub-images, and to turn on the reticle marking the target position in them.
+            叠加控制可调整子图的缩放与拉伸，并可开启标记目标位置的十字线。
           </p>
           <p>
-            The link below the cutouts allows to download single multi-extension FITS file containing all the cutouts, along with the information on transient position and metadata in the header.
+            Cutout 下方的链接可下载包含所有 cutout 的单个多扩展 FITS 文件，以及头部中的暂现源位置信息和元数据。
           </p>
         </span>
       </h3>
@@ -862,7 +862,7 @@
       {% if candidates|length > 10 %}
         <div class="mb-4 text-center">
           <a class="btn btn-primary" href="{% url 'task_candidates' id=task.id %}" role="button">
-            See the rest of {{ candidates|length }} candidates
+            查看其余 {{ candidates|length }} 个候选体
           </a>
         </div>
       {% endif %}

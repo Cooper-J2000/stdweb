@@ -78,24 +78,24 @@
 {% block content %}
 
   {% if not task %}
-    <p>Task not found</p>
+    <p>未找到任务</p>
   {% else %}
 
     <h2>
       <a href="{% url 'tasks' id=task.id %}" class="text-decoration-none text-body me-2"
-         title="Return to task page">
+         title="返回任务页">
         <span class="fa fa-angle-left"/>
       </a>
 
       {% if mode == 'template' %}
-        Create Custom Template Mask for Task {{ task.id }}
+        为任务 {{ task.id }} 创建自定义模板掩模
       {% else %}
-        Create Custom Mask for Task {{ task.id }}
+        为任务 {{ task.id }} 创建自定义掩模
       {% endif %}
     </h2>
 
     <p class="text-muted">
-      Define usable image regions by clicking and dragging the selections.
+      通过点击并拖拽框选来定义可用图像区域。
     </p>
 
     <div class="mb-2 image-decorator">
@@ -109,13 +109,13 @@
         <input type="hidden" name="height" id="form_height"/>
         <input type="hidden" name="areas" id="form_areas"/>
 
-        <div class="form-check form-check-inline" title="Selected areas will be masked as unusable">
+        <div class="form-check form-check-inline" title="选中区域将被掩模为不可用">
           <input class="form-check-input"  type="checkbox" name="inverted" id="inverted" {% if inverted %}checked{% endif %}/>
-          <label class="form-check-label" for="inverted">Mask selected regions</label>
+          <label class="form-check-label" for="inverted">掩模选中区域</label>
         </div>
 
-        <button class="btn btn-primary">Create mask</button>
-        <button class="btn btn-secondary" onclick="$('#image').selectAreas('reset')">Clear</button>
+        <button class="btn btn-primary">创建掩模</button>
+        <button class="btn btn-secondary" onclick="$('#image').selectAreas('reset')">清除</button>
       </form>
     </div>
 

@@ -4,16 +4,16 @@
 {% load crispy_forms_tags %}
 {% load filters %}
 
-{% block ptitle %}Tasks : STDWeb{% endblock %}
+{% block ptitle %}任务 : STDWeb{% endblock %}
 
 {% block title_div %}
   <h1 class="mb-4">
     <a href="#" class="text-decoration-none text-body me-1"
        onclick="showSkyMap('{% url 'tasks_skymap_data' %}' + window.location.search); return false;"
-       title="Show sky map of tasks">
+       title="显示任务天区图">
       <small><i class="fa fa-globe"></i></small>
     </a>
-    Tasks
+    任务
   </h1>
 {% endblock %}
 
@@ -79,9 +79,9 @@
       <div class="list-group mb-4">
 
         <div class="list-group-item d-flex bg-light">
-          <input class="form-check-input" type="checkbox" name="select_all" title="Select all"/>
-          <span class="ms-auto me-auto"><strong>Task</strong></span>
-          <span class="pull-right me-4"><strong>Status</strong></span>
+          <input class="form-check-input" type="checkbox" name="select_all" title="全选"/>
+          <span class="ms-auto me-auto"><strong>任务</strong></span>
+          <span class="pull-right me-4"><strong>状态</strong></span>
         </div>
 
         {% for task in tasks %}
@@ -104,53 +104,53 @@
 
                 {% if task.ra is not None and task.dec is not None and task.radius is not None and task.config.pixscale %}
                   <div>
-                    Field center: <span class="fw-bold" title="{{ task.ra|to_sexadecimal_hours }} {{ task.dec|to_sexadecimal_plus }}">
+                    场中心: <span class="fw-bold" title="{{ task.ra|to_sexadecimal_hours }} {{ task.dec|to_sexadecimal_plus }}">
                     {{ task.ra|floatformat:4 }} {{ task.dec|numformat:'+.4f' }}
                     </span>
-                    Radius: <span class="fw-bold" title="{{ task.radius|to_sexadecimal }}">{{ task.radius|floatformat:2 }}</span> deg
-                    Pixel scale: <span class="fw-bold">{{ task.config.pixscale|multiply:3600|floatformat:2 }}</span> arcsec/pix
+                    半径: <span class="fw-bold" title="{{ task.radius|to_sexadecimal }}">{{ task.radius|floatformat:2 }}</span> 度
+                    像素比例: <span class="fw-bold">{{ task.config.pixscale|multiply:3600|floatformat:2 }}</span> 角秒/像素
                   </div>
                 {% endif %}
 
                 <div>
                   {% if task.config.target_ra is not None and task.config.target_dec is not None %}
-                    Target: <span class="fw-bold">{{ task.config.target_ra|to_sexadecimal_hours }} {{ task.config.target_dec|to_sexadecimal_plus }}</span>
+                    目标: <span class="fw-bold">{{ task.config.target_ra|to_sexadecimal_hours }} {{ task.config.target_dec|to_sexadecimal_plus }}</span>
                   {% endif %}
 
                   {% if task.config.mag_limit %}
-                    Detection limit: <span class="fw-bold">{{ task.config.mag_limit|floatformat:2 }}</span>
+                    探测极限: <span class="fw-bold">{{ task.config.mag_limit|floatformat:2 }}</span>
                   {% endif %}
                 </div>
 
                 <small class="me-2 badge bg-info">{{ task.user|user }}</small>
                 {% for g in task.groups.all %}
-                  <small class="me-1 badge bg-primary-subtle text-secondary{% if g.id not in user_group_ids %} border border-danger{% endif %}" {% if g.id not in user_group_ids %}title="Shared with a group you do not belong to"{% endif %}>
+                  <small class="me-1 badge bg-primary-subtle text-secondary{% if g.id not in user_group_ids %} border border-danger{% endif %}" {% if g.id not in user_group_ids %}title="与你所属用户组共享"{% endif %}>
                     {{ g.name }}
                   </small>
                 {% endfor %}
-                <small class="me-2">Created: <span class="fst-italic">{{ task.created|timestamp }}</span></small>
-                <small class="me-2">Modified: <span class="fst-italic">{{ task.modified|timestamp }}</span></small>
+                <small class="me-2">创建: <span class="fst-italic">{{ task.created|timestamp }}</span></small>
+                <small class="me-2">更新: <span class="fst-italic">{{ task.modified|timestamp }}</span></small>
               </a>
             </div>
-            <span class="badge bg-{% if 'failed' in task.state or 'cancelled' in task.state %}danger{% else %}primary{% endif %} rounded-pill">{{ task.state }}</span>
+            <span class="badge bg-{% if 'failed' in task.state or 'cancelled' in task.state %}danger{% else %}primary{% endif %} rounded-pill">{{ task.state|state_cn }}</span>
           </div>
         {% endfor %}
       </div>
 
       <div id='actions_menu' class="mb-4">
-        <span class="ms-2 me-2">Actions on selected tasks:</span>
+        <span class="ms-2 me-2">对所选任务的操作:</span>
         <button type="submit" name="action" value="archive" class="btn btn-info"
-                title="Delete all generated files">Archive</button>
+                title="删除所有生成的文件">归档</button>
         <button type="submit" name="action" value="cleanup" class="btn btn-warning"
-                title="Delete all processing results and configurations">Cleanup</button>
+                title="删除所有处理结果和配置">清理</button>
 
         {% if shareable_groups %}
           <!-- Bulk group sharing -->
           <div class="dropdown d-inline ms-2">
             <button class="btn btn-secondary dropdown-toggle" type="button"
                     data-bs-toggle="dropdown" data-bs-auto-close="outside"
-                    title="Add or remove selected tasks to / from your groups">
-              <i class="fa fa-share-alt me-2"></i> Groups
+                    title="将所选任务添加至/移出你的用户组">
+              <i class="fa fa-share-alt me-2"></i> 用户组
             </button>
 
             <div class="dropdown-menu p-2" style="min-width: 14rem; max-height: 18rem; overflow-y: auto;">
@@ -162,10 +162,10 @@
               {% endfor %}
               <hr class="my-2">
               <button type="submit" name="action" value="add_to_groups" class="btn btn-sm btn-success w-100 mb-1">
-                Add selected tasks
+                添加所选任务
               </button>
               <button type="submit" name="action" value="remove_from_groups" class="btn btn-sm btn-warning w-100">
-                Remove selected tasks
+                移出所选任务
               </button>
             </div>
           </div>
@@ -177,13 +177,13 @@
                 data-bs-target="#unsafeButtons"
                 aria-expanded="false"
                 aria-controls="unsafeButtons"
-                title="Show / hide unsafe controls">
+                title="显示/隐藏危险操作">
         </button>
 
         <span id="unsafeButtons" class="collapse collapse-horizontal collapsed">
 
           <button type="submit" name="action" value="delete" class="btn btn-danger"
-                  title="Permanently delete this task">Delete</button>
+                  title="永久删除此任务">删除</button>
         </span>
 
       </div>
@@ -193,7 +193,7 @@
     {% show_pages %}
 
   {% else %}
-    No tasks found
+    未找到任务
   {% endif %}
 
 {% endblock %}

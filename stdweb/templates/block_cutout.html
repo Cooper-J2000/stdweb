@@ -20,20 +20,20 @@
 
 {% else %}
 
-  <h2>Cutout data</h2>
+  <h2>Cutout 数据</h2>
 
   <!-- Metadata -->
   <ul>
-    <li>Name: <b>{{ cutout.meta.name }}</b></li>
+    <li>名称: <b>{{ cutout.meta.name }}</b></li>
     {% if cutout.meta.filename %}
-      <li>Time: <b>{{ cutout.meta.time.iso }}</b></li>
+      <li>时间: <b>{{ cutout.meta.time.iso }}</b></li>
     {% endif %}
-    <li>Mag: <b>{{ cutout.meta.mag_calib|floatformat:"2u" }}</b> +/- <b>{{ cutout.meta.magerr|floatformat:"2u" }}</b></li>
+    <li>星等: <b>{{ cutout.meta.mag_calib|floatformat:"2u" }}</b> +/- <b>{{ cutout.meta.magerr|floatformat:"2u" }}</b></li>
     <li>RA/Dec: <b>{{ cutout.meta.ra|floatformat:"4u" }}</b> <b>{{ cutout.meta.dec|floatformat:"4u" }}</b></li>
     <li>X/Y: <b>{{ cutout.meta.x|floatformat:"2u" }}</b> <b>{{ cutout.meta.y|floatformat:"2u" }}</b></li>
 
     {% if cutout.meta.filename %}
-      <li>Original Image: <b>
+      <li>原始图像: <b>
         {{ cutout.meta.filename }}
       </b></li>
     {% endif %}
@@ -92,7 +92,7 @@
 
   <!-- External links -->
   <div class="mt-2">
-    <!-- <h4>External resources</h4> -->
+    <!-- <h4>外部资源</h4> -->
     {% with ra=cutout.meta.ra dec=cutout.meta.dec %}
       <ul class="list-inline">
         <li class="list-inline-item disabled">

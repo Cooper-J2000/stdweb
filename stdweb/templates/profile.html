@@ -1,6 +1,6 @@
 {% extends "template.html" %}
 
-{% block title %}User Profile{% endblock %}
+{% block title %}用户设置{% endblock %}
 
 {% block content %}
   <div class="row">
@@ -9,31 +9,31 @@
       <!-- Account Information -->
       <div class="card mb-4">
         <div class="card-header">
-          <i class="fa fa-user"></i> Account Information
+          <i class="fa fa-user"></i> 账户信息
         </div>
         <div class="card-body">
           <table class="table table-borderless mb-0">
             <tbody>
               <tr>
-                <th scope="row" style="width: 200px;">Username</th>
+                <th scope="row" style="width: 200px;">用户名</th>
                 <td>{{ user.username }}</td>
               </tr>
               <tr>
-                <th scope="row">Email</th>
-                <td>{{ user.email|default:"Not set" }}</td>
+                <th scope="row">邮箱</th>
+                <td>{{ user.email|default:"未设置" }}</td>
               </tr>
               <tr>
-                <th scope="row">Date Joined</th>
+                <th scope="row">注册日期</th>
                 <td>{{ user.date_joined|date:"F j, Y" }}</td>
               </tr>
               <tr>
-                <th scope="row">Last Login</th>
-                <td>{{ user.last_login|date:"F j, Y, g:i a"|default:"Never" }}</td>
+                <th scope="row">最近登录</th>
+                <td>{{ user.last_login|date:"Y-m-d H:i"|default:"从未" }}</td>
               </tr>
               {% if user.is_staff %}
                 <tr>
-                  <th scope="row">Staff Status</th>
-                  <td><span class="badge bg-primary">Staff</span></td>
+                  <th scope="row">管理员状态</th>
+                  <td><span class="badge bg-primary">管理员</span></td>
                 </tr>
               {% endif %}
             </tbody>
@@ -44,18 +44,18 @@
       <!-- Groups -->
       <div class="card mb-4">
         <div class="card-header">
-          <i class="fa fa-users"></i> Groups
+          <i class="fa fa-users"></i> 用户组
         </div>
         <div class="card-body">
           {% if user.groups.all %}
-            <p class="text-muted mb-3">You belong to the following groups:</p>
+            <p class="text-muted mb-3">你属于以下用户组:</p>
             <div>
               {% for g in user.groups.all %}
                 <span class="badge bg-primary-subtle text-secondary me-1 mb-1">{{ g.name }}</span>
               {% endfor %}
             </div>
           {% else %}
-            <p class="text-muted mb-0">You do not belong to any groups.</p>
+            <p class="text-muted mb-0">你不属于任何用户组。</p>
           {% endif %}
         </div>
       </div>
@@ -63,12 +63,12 @@
       <!-- Password -->
       <div class="card mb-4">
         <div class="card-header">
-          <i class="fa fa-lock"></i> Password
+          <i class="fa fa-lock"></i> 密码
         </div>
         <div class="card-body">
-          <p class="mb-3">Change your account password.</p>
+          <p class="mb-3">修改你的账户密码。</p>
           <a href="{% url 'password' %}" class="btn btn-outline-primary">
-            <i class="fa fa-key"></i> Change Password
+            <i class="fa fa-key"></i> 修改密码
           </a>
         </div>
       </div>
@@ -76,29 +76,29 @@
       <!-- API Token -->
       <div class="card mb-4">
         <div class="card-header">
-          <i class="fa fa-code"></i> API Token
+          <i class="fa fa-code"></i> API 令牌
         </div>
         <div class="card-body">
           <p class="text-muted mb-3">
-            Use this token to authenticate API requests. Include it in the <code>Authorization</code> header:
+            使用此令牌对 API 请求进行身份验证。将其放在 <code>Authorization</code> 请求头中:
           </p>
           <pre class="bg-light p-2 rounded mb-3"><code>Authorization: Token {{ token.key }}</code></pre>
 
           <div class="input-group mb-3">
             <input type="text" class="form-control font-monospace" id="api-token" value="{{ token.key }}" readonly>
-            <button class="btn btn-outline-secondary" type="button" onclick="copyToken()" title="Copy to clipboard">
-              <i class="fa fa-copy"></i> Copy
+            <button class="btn btn-outline-secondary" type="button" onclick="copyToken()" title="复制到剪贴板">
+              <i class="fa fa-copy"></i> 复制
             </button>
           </div>
 
           <p class="text-muted small mb-3">
-            Token created: {{ token.created|date:"F j, Y, g:i a" }}
+            令牌创建于: {{ token.created|date:"Y-m-d H:i" }}
           </p>
 
-          <form method="post" onsubmit="return confirm('Are you sure you want to regenerate your API token? This will invalidate your current token and any applications using it will need to be updated.');">
+          <form method="post" onsubmit="return confirm('确定要重新生成 API 令牌吗？这将使当前令牌失效，使用它的应用程序需要更新。');">
             {% csrf_token %}
             <button type="submit" name="regenerate_token" class="btn btn-warning">
-              <i class="fa fa-refresh"></i> Regenerate Token
+              <i class="fa fa-refresh"></i> 重新生成令牌
             </button>
           </form>
         </div>
@@ -110,18 +110,18 @@
       <!-- Quick Links -->
       <div class="card mb-4">
         <div class="card-header">
-          <i class="fa fa-link"></i> Quick Links
+          <i class="fa fa-link"></i> 快捷链接
         </div>
         <ul class="list-group list-group-flush">
           <li class="list-group-item">
-            <a href="{% url 'tasks' %}"><i class="fa fa-tasks"></i> My Tasks</a>
+            <a href="{% url 'tasks' %}"><i class="fa fa-tasks"></i> 我的任务</a>
           </li>
           <li class="list-group-item">
-            <a href="{% url 'doc_file' 'REST_API.md' %}"><i class="fa fa-book"></i> API Documentation</a>
+            <a href="{% url 'doc_file' 'REST_API.md' %}"><i class="fa fa-book"></i> API 文档</a>
           </li>
           {% if user.is_staff %}
             <li class="list-group-item">
-              <a href="{% url 'admin:index' %}"><i class="fa fa-cog"></i> Admin Panel</a>
+              <a href="{% url 'admin:index' %}"><i class="fa fa-cog"></i> 管理后台</a>
             </li>
           {% endif %}
         </ul>
@@ -130,10 +130,10 @@
       <!-- API Usage Example -->
       <div class="card mb-4">
         <div class="card-header">
-          <i class="fa fa-terminal"></i> Quick Example
+          <i class="fa fa-terminal"></i> 快速示例
         </div>
         <div class="card-body">
-          <p class="small text-muted mb-2">List your tasks:</p>
+          <p class="small text-muted mb-2">列出你的任务:</p>
           <pre class="bg-light p-2 rounded small"><code>curl -H "Authorization: Token {{ token.key }}" \
             {{ request.scheme }}://{{ request.get_host }}/api/tasks/</code></pre>
         </div>
@@ -151,7 +151,7 @@
      // Show feedback
      var btn = event.target.closest('button');
      var originalHtml = btn.innerHTML;
-     btn.innerHTML = '<i class="fa fa-check"></i> Copied!';
+     btn.innerHTML = '<i class="fa fa-check"></i> 已复制!';
      btn.classList.remove('btn-outline-secondary');
      btn.classList.add('btn-success');
      setTimeout(function() {

@@ -1,17 +1,17 @@
 {% extends "template.html" %}
 
 {% block ptitle %}
-  Action Log : STDWeb
+  操作日志 : STDWeb
 {% endblock %}
 
-{% block title %}Action Log{% endblock %}
+{% block title %}操作日志{% endblock %}
 
 {% block content %}
   <div class="row mb-3">
     <div class="col">
       <p class="text-muted">
-        Showing the 20 most recent user actions. For full log access and filtering, visit the
-        <a href="{% url 'admin:stdweb_actionlog_changelist' %}" class="alert-link">Admin Panel</a>.
+        显示最近 20 条用户操作。完整日志访问与筛选请前往
+        <a href="{% url 'admin:stdweb_actionlog_changelist' %}" class="alert-link">管理后台</a>。
       </p>
     </div>
   </div>
@@ -26,11 +26,11 @@
           <table class="table table-hover table-sm mb-0">
             <thead class="table-light">
               <tr>
-                <th style="width: 12em;">Timestamp, UT</th>
-                <th style="width: 10em;">User</th>
-                <th style="width: 15em;">Action</th>
-                <th style="width: 5em;">Task ID</th>
-                <th>Details</th>
+                <th style="width: 12em;">时间戳, UT</th>
+                <th style="width: 10em;">用户</th>
+                <th style="width: 15em;">操作</th>
+                <th style="width: 5em;">任务 ID</th>
+                <th>详情</th>
               </tr>
             </thead>
             <tbody>
@@ -67,7 +67,7 @@
                     {% if log.details %}
                       <details>
                         <summary class="text-muted" style="cursor: pointer;">
-                          <small>Show details</small>
+                          <small>显示详情</small>
                         </summary>
                         <div style="max-width: 100%; overflow-x: auto;">
                           <pre class="bg-light p-2 rounded mt-2 mb-0" style="font-size: 0.85em; margin: 0;">{{ log.details }}</pre>
@@ -85,7 +85,7 @@
       {% else %}
         <div class="p-4 text-center text-muted">
           <i class="fa fa-inbox fa-3x mb-3"></i>
-          <p>No action log entries found.</p>
+          <p>未找到操作日志记录。</p>
         </div>
       {% endif %}
     </div>
@@ -95,9 +95,9 @@
     <div class="col">
       <p class="text-muted small">
         <i class="fa fa-info-circle"></i>
-        This is a read-only view limited to recent entries.
-        For comprehensive log management, date filtering, and search capabilities,
-        please use the <a href="{% url 'admin:stdweb_actionlog_changelist' %}">Admin Panel</a>.
+        这是仅限最近记录的只读视图。
+        如需全面的日志管理、日期过滤和搜索功能，
+        请使用<a href="{% url 'admin:stdweb_actionlog_changelist' %}">管理后台</a>。
       </p>
     </div>
   </div>

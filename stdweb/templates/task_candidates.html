@@ -14,7 +14,7 @@
 {% block content %}
 
   {% if not task %}
-    <p>Task not found</p>
+    <p>未找到任务</p>
   {% else %}
 
     <h2>
@@ -38,19 +38,19 @@
     {% if candidates %}
       <hr>
       <h3>
-        {{ candidates|length }} transient candidates {% if not 'simple' in filename %}in difference (template-subtracted) image{% endif %}
-        <span class="span-help-popover float-end" title="Transient candidates in difference image">
+        {{ candidates|length }} 个暂现源候选体{% if not 'simple' in filename %}（差分（模板相减）图）{% endif %}
+        <span class="span-help-popover float-end" title="差分图中的暂现源候选体">
           <p>
             Cutouts show the target position in the original image, template, template convolved with matching kernel which is used for actual subtraction, difference image, detection footprint, and the mask. The latter helps identifying possible problems due to template bad regions, cosmic rays or saturation, while the footprint displays the spread of the pixels above detection threshold useful for understanding what exactly triggered the detection.
           </p>
           <p>
-            The measurements above cutouts correspond to aperture photometry at the candidate position in the difference image, with the same parameters as used above for photometric calibration, so the resulting magnitude (if measured) is in the same system. Detection limit is derived from the locally estimated background noise and corresonds to the same S/N level as used for object detection above.
+            Cutout 上方的测量值对应候选体位置在差分图中的孔径测光，使用与上面光度定标相同的参数，因此所得星等（若测得）在同一系统内。探测极限由局部估计的背景噪声导出，对应上面目标检测使用的同一 S/N 水平。
           </p>
           <p>
             Overlay controls allow to adjust the scaling and stretching of the sub-images, and to turn on the reticle marking the target position in them.
           </p>
           <p>
-            The link below the cutouts allows to download single multi-extension FITS file containing all the cutouts, along with the information on transient position and metadata in the header.
+            Cutout 下方的链接可下载包含所有 cutout 的单个多扩展 FITS 文件，以及头部中的暂现源位置信息和元数据。
           </p>
         </span>
       </h3>
@@ -66,7 +66,7 @@
       {% show_pages %}
 
     {% else %}
-      No transient candidates found
+      未找到暂现源候选体
     {% endif %}
 
   {% endif %}

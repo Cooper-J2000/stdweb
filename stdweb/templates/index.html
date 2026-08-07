@@ -3,12 +3,12 @@
 {% load crispy_forms_tags %}
 {% load filters %}
 
-{% block title %}Simple Transient Detection for the Web{% endblock %}
+{% block title %}面向 Web 的简易暂现源检测{% endblock %}
 
 {% block content %}
 
   <p>
-    This is a simple web-based tool for a quick-look photometry and transient detection in astronomical images. It is based on <a href="https://github.com/karpov-sv/stdpipe">STDPipe</a> library and tries to implement a self-consistent and mostly automatic data analysis workflow from its routines.
+    这是一个基于 <a href="https://github.com/karpov-sv/stdpipe">STDPipe</a> 库的 Web 工具，用于天文图像的快速测光和暂现源检测，实现了自洽且大部分自动化的数据分析流程。
   </p>
 
   <!--
@@ -27,11 +27,11 @@
   -->
 
   <p>
-    STDWeb is being developed by Sergey Karpov, and was originally created as part of <a href="https://grandma.ijclab.in2p3.fr">GRANDMA</a> project.
+    STDWeb 由 Sergey Karpov 开发，最初是 <a href="https://grandma.ijclab.in2p3.fr">GRANDMA</a> 项目的一部分。
   </p>
 
   <p>
-    If you use STDWeb in your work, or use results from STDWeb in a publication, please cite <br>
+    如果在工作中使用 STDWeb 或其处理结果，请引用：<br>
     <p style="padding: 0 1rem 0 1rem; border-width: 0 0 0 5px; border-style: solid; border-color: gray">
         Karpov, S. (2025). <b>STDweb: simple transient detection pipeline for the web</b>. <i>Acta Polytechnica</i>, 65(1), 50-64. <br>
         <a href="https://doi.org/10.14311/AP.2025.65.0050">https://doi.org/10.14311/AP.2025.65.0050</a>
@@ -40,21 +40,20 @@
   </p>
 
   <p>
-    The <a href="https://stdweb.readthedocs.io">documentation for STDWeb</a> is available, but
-    if you want to better understand the lower-level routines used for its operation, please consult STDPipe <a href="https://stdpipe.readthedocs.io/">documentation</a> and <a href="https://github.com/karpov-sv/stdpipe/tree/master/notebooks">example notebooks</a>, as well as the <a href="https://github.com/karpov-sv/stdweb">actual source code</a> behind this web tool.
+    <a href="https://stdweb.readthedocs.io">STDWeb 文档</a>已发布；若想深入了解底层处理流程，请参阅 STDPipe <a href="https://stdpipe.readthedocs.io/">文档</a>、<a href="https://github.com/karpov-sv/stdpipe/tree/master/notebooks">示例 notebook</a> 以及本工具的<a href="https://github.com/karpov-sv/stdweb">源代码</a>。
   </p>
 
   <hr>
   <h3>
-    Image upload
+    图像上传
     {% if user.is_authenticated %}
       <!-- Help popover -->
-      <span class="span-help-popover float-end" title="Upload new FITS file">
+      <span class="span-help-popover float-end" title="上传新的 FITS 文件">
         <p>
-          You may upload new FITS image here. Upon uploading, you will be redirected to the dedicated task page for this image, where you may analyze it.
+          在此上传新的 FITS 图像。上传后将跳转到该图像的专属任务页，可在其中进行分析。
         </p>
         <p>
-          You may set a free-form title or comment for the image. Also, you may select some configuration preset that will pre-fill some processing parameters. Moreover, you may directly specify the target name, coordinates, or pixel position (as <code>x=... y=...</code>), and initiate automatic execution of some of processing steps by using the checkboxes below the form.
+          可为图像设置自由格式的标题或备注。也可选择配置预设以预填处理参数。还可以直接指定目标名称、坐标或像素位置（格式 <code>x=... y=...</code>），并通过表单下方的复选框启动部分处理步骤的自动执行。
         </p>
       </span>
     {% endif %}
@@ -71,7 +70,7 @@
 
   {% else %}
 
-    Please <a href="{% url 'login' %}">log in</a> to be able to upload files.
+    请先<a href="{% url 'login' %}">登录</a>后再上传文件。
 
   {% endif %}
 
