@@ -1,5 +1,12 @@
 # STDWeb - Simple Transient Detection for the Web
 
+> **LOCAL DEPLOYMENT NOTICE (this machine)**
+> This checkout is a locally customized version. All local changes (full Chinese
+> UI localization, security hardening, extra features) live in the `local-zh`
+> branch and are documented in **README.local.md** (Chinese) — read that file
+> first if you maintain this deployment. `master` tracks upstream.
+> 本机部署说明见 README.local.md（中文运维文档）。
+
 This is a simple web-based tool for a quick-look photometry and transient detection in astronomical images. It is based on [STDPipe](https://github.com/karpov-sv/stdpipe) library and tries to implement a self-consistent and mostly automatic data analysis workflow from its routines.
 
 It currently allows you to:
