@@ -3,7 +3,7 @@ from django.template.response import TemplateResponse
 from django.urls import reverse
 from django.db.models import Q
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, permission_required
 from django.views.decorators.cache import cache_page
 from django.conf import settings
 
@@ -138,6 +138,7 @@ def skyportal_resolve_task(task):
 
 
 @login_required
+@permission_required('stdweb.skyportal_upload', raise_exception=True)
 def skyportal(request):
     context = {}
 
