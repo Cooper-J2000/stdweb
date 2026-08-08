@@ -514,6 +514,63 @@ class SkyPortalUploadForm(forms.Form):
             self.fields['instrument'].choices = instruments
 
 
+class AJSTSelectForm(forms.Form):
+    ids = forms.CharField(
+        max_length=150, required=False, label="要上传的任务 ID",
+        widget=forms.TextInput(attrs={'placeholder': '任务 ID 列表，逗号或空格分隔，支持 a-b 范围'})
+    )
+    types = forms.MultipleChoiceField(
+        choices=[('direct', '直接'), ('subtracted', '模板相减')],
+        initial=['direct', 'subtracted'], required=False, label="测光类型",
+        widget=forms.CheckboxSelectMultiple,
+    )
+    transient_id = forms.CharField(
+        max_length=150, required=False, label="AJST 源 ID",
+        widget=forms.TextInput(attrs={'placeholder': '留空则按坐标解析'})
+    )
+    create_if_missing = forms.BooleanField(initial=False, required=False, label="源不存在时新建")
+    new_t0 = forms.DateTimeField(
+        required=False, label="新源 t0（UTC）",
+        widget=forms.DateTimeInput(attrs={'type': 'datetime-local'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_tag = False
+        self.helper.disable_csrf = True
+        self.helper.field_template = 'crispy_field.html'
+        self.helper.layout = Layout(
+            Row(
+                Column(
+                    'ids',
+                    css_class="col-md"
+                ),
+                Column(
+                    'types',
+                    css_class="col-md-auto"
+                ),
+                Column(
+                    Submit('preview', '预览', css_class='btn-primary mb-1'),
+                    css_class="col-md-auto"
+                ),
+                css_class='align-items-end',
+            ),
+            Row(
+                Column('transient_id', css_class="col-md"),
+                Column('create_if_missing', css_class="col-md-auto"),
+                Column('new_t0', css_class="col-md-auto"),
+                css_class='align-items-end',
+            ),
+        )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if cleaned_data.get('create_if_missing') and not cleaned_data.get('new_t0'):
+            self.add_error('new_t0', '新建源时必须填写 t0')
+        return cleaned_data
+
+
 class LightcurveSearchForm(forms.Form):
     coordinates = forms.CharField(
         max_length=200,

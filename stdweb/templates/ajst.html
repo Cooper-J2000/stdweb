@@ -1,0 +1,156 @@
+{% extends "template.html" %}
+
+{% load crispy_forms_tags %}
+
+{% block ptitle %}AJST Upload : STDWeb{% endblock %}
+
+{% block title %}上传测光结果至 AJST 星表{% endblock %}
+
+{% block content %}
+
+  <div>
+
+    <form action="{% url 'ajst' %}" method="POST" class="mb-2">
+      {% csrf_token %}
+
+      {% crispy form %}
+
+      {% if rows %}
+        {% for row in rows %}
+          {% if row.fatal %}
+            <div class="alert alert-danger py-2">
+              任务 <a href="{% url 'tasks' row.task_id %}" target="_blank">{{ row.task_id }}</a>：{{ row.error }}
+            </div>
+          {% else %}
+            <div class="card mb-3 {% if row.error or row.mjd_missing %}border-danger{% elif row.band_unmapped %}border-warning{% endif %}">
+              <input type="hidden" name="row_index" value="{{ forloop.counter0 }}"/>
+              <input type="hidden" name="row_{{ forloop.counter0 }}_task_id" value="{{ row.task_id }}"/>
+              <input type="hidden" name="row_{{ forloop.counter0 }}_types" value="{{ row.types }}"/>
+              <input type="hidden" name="row_{{ forloop.counter0 }}_svo_filter" value="{{ row.svo_filter }}"/>
+              <input type="hidden" name="row_{{ forloop.counter0 }}_original_name" value="{{ row.original_name }}"/>
+
+              <div class="card-header py-2 d-flex align-items-center gap-3 flex-wrap">
+                <div class="form-check mb-0">
+                  <input class="form-check-input" type="checkbox" id="row_sel_{{ forloop.counter0 }}"
+                         name="row_{{ forloop.counter0 }}_selected" {% if row.selected %}checked{% endif %}
+                         title="勾选后此条目才会上传"/>
+                  <label class="form-check-label fw-bold" for="row_sel_{{ forloop.counter0 }}">上传</label>
+                </div>
+                <span>任务 <a href="{% url 'tasks' row.task_id %}" target="_blank">{{ row.task_id }}</a></span>
+                {% if row.types == 'direct' %}
+                  <span class="badge bg-secondary">直接测光</span>
+                {% else %}
+                  <span class="badge bg-info text-dark">模板相减</span>
+                {% endif %}
+                <small class="text-muted text-truncate" style="max-width: 20em" title="{{ row.original_name }}">{{ row.original_name }}</small>
+                <span class="ms-auto">
+                  {% if row.t0 %}
+                    <small class="text-muted">t0 {{ row.t0 }}{% if row.distance %} · 距离 {{ row.distance|floatformat:2 }}″{% endif %}</small>
+                  {% else %}
+                    <small class="text-danger fw-bold" title="源未解析或无 t0，上传将被 AJST 拒绝">无 t0</small>
+                  {% endif %}
+                </span>
+              </div>
+
+              <div class="card-body py-2">
+                {# 第一排：测光量 #}
+                <div class="row g-3 align-items-end">
+                  <div class="col-auto">
+                    <label class="form-label small text-muted mb-0">MJD</label>
+                    <input class="form-control form-control-sm {% if row.mjd_missing %}is-invalid{% endif %}" style="width: 9em" type="text"
+                           name="row_{{ forloop.counter0 }}_mjd" value="{{ row.mjd|default_if_none:'' }}"
+                           {% if row.mjd_missing %}title="任务无观测时间，请手工填写 MJD"{% endif %}/>
+                  </div>
+                  <div class="col-auto">
+                    <label class="form-label small text-muted mb-0">mag</label>
+                    <input class="form-control form-control-sm" style="width: 6em" type="text"
+                           name="row_{{ forloop.counter0 }}_mag" value="{{ row.mag|default_if_none:'' }}"/>
+                  </div>
+                  <div class="col-auto">
+                    <label class="form-label small text-muted mb-0">mag_err</label>
+                    <input class="form-control form-control-sm" style="width: 6em" type="text"
+                           name="row_{{ forloop.counter0 }}_mag_err" value="{{ row.mag_err|default_if_none:'' }}"/>
+                  </div>
+                  <div class="col-auto">
+                    <label class="form-label small text-muted mb-0">limiting_mag</label>
+                    <input class="form-control form-control-sm" style="width: 7em" type="text"
+                           name="row_{{ forloop.counter0 }}_limiting_mag" value="{{ row.limiting_mag|default_if_none:'' }}"/>
+                  </div>
+                  <div class="col-auto">
+                    <label class="form-label small text-muted mb-0">band</label>
+                    <input class="form-control form-control-sm {% if row.band_unmapped %}is-invalid{% endif %}" style="width: 6em" type="text"
+                           name="row_{{ forloop.counter0 }}_band" value="{{ row.band|default_if_none:'' }}"
+                           {% if row.band_unmapped %}title="滤光片 {{ row.svo_filter }} 未能映射到 AJST band，请手工修改"{% endif %}/>
+                  </div>
+                  <div class="col-auto">
+                    <label class="form-label small text-muted mb-0">mag_system</label>
+                    <input class="form-control form-control-sm" style="width: 6em" type="text"
+                           name="row_{{ forloop.counter0 }}_mag_system" value="{{ row.mag_system|default_if_none:'AB' }}"/>
+                  </div>
+                </div>
+
+                {# 第二排：源与溯源 #}
+                <div class="row g-3 align-items-end mt-1">
+                  <div class="col-auto">
+                    <label class="form-label small text-muted mb-0">AJST 源 ID</label>
+                    <input class="form-control form-control-sm" style="width: 10em" type="text"
+                           name="row_{{ forloop.counter0 }}_transient_id" value="{{ row.transient_id|default_if_none:'' }}"/>
+                  </div>
+                  <div class="col-auto">
+                    <label class="form-label small text-muted mb-0">RA</label>
+                    <input class="form-control form-control-sm" style="width: 8em" type="text"
+                           name="row_{{ forloop.counter0 }}_ra" value="{{ row.ra|default_if_none:'' }}"/>
+                  </div>
+                  <div class="col-auto">
+                    <label class="form-label small text-muted mb-0">Dec</label>
+                    <input class="form-control form-control-sm" style="width: 8em" type="text"
+                           name="row_{{ forloop.counter0 }}_dec" value="{{ row.dec|default_if_none:'' }}"/>
+                  </div>
+                  <div class="col-auto">
+                    <label class="form-label small text-muted mb-0">telescope</label>
+                    <input class="form-control form-control-sm" style="width: 8em" type="text"
+                           name="row_{{ forloop.counter0 }}_telescope" value="{{ row.telescope|default_if_none:'' }}"/>
+                  </div>
+                  <div class="col-auto">
+                    <label class="form-label small text-muted mb-0">instrument</label>
+                    <input class="form-control form-control-sm" style="width: 8em" type="text"
+                           name="row_{{ forloop.counter0 }}_instrument" value="{{ row.instrument|default_if_none:'' }}"/>
+                  </div>
+                  <div class="col-auto flex-grow-1">
+                    <label class="form-label small text-muted mb-0">reference</label>
+                    <input class="form-control form-control-sm w-100" type="text"
+                           name="row_{{ forloop.counter0 }}_reference" value="{{ row.reference|default_if_none:'' }}"/>
+                  </div>
+                </div>
+
+                {% if row.error or row.status %}
+                  <div class="mt-2">
+                    {% if row.error %}
+                      <span class="text-danger">{{ row.error }}</span>
+                    {% endif %}
+                    {% if row.status %}
+                      <span class="text-success">{{ row.status }}</span>
+                    {% endif %}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          {% endif %}
+        {% endfor %}
+
+        <div class="d-flex align-items-center mt-3">
+          <button type="submit" name="action" value="resolve" class="btn btn-secondary"
+                  title="按当前表单中的源 ID / 坐标重新解析 AJST 源，刷新 t0 与匹配距离">重新解析</button>
+          {% if action != 'upload' %}
+            <button type="submit" name="action" value="upload" class="btn btn-danger ms-auto"
+                    title="以上方勾选条目的表单值为准上传至 AJST 星表">上传</button>
+          {% endif %}
+        </div>
+
+      {% endif %}
+
+    </form>
+
+  </div>
+
+{% endblock %}

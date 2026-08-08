@@ -26,6 +26,7 @@ from . import views
 from . import views_tasks
 from . import views_celery
 from . import views_skyportal
+from . import views_ajst
 from . import views_lightcurves
 
 urlpatterns = [
@@ -74,6 +75,7 @@ urlpatterns = [
     path('tasks/<int:id>/update_groups', views_tasks.task_update_groups, name='task_update_groups'),
 
     path('skyportal/', views_skyportal.skyportal, name='skyportal'),
+    path('ajst/', views_ajst.ajst, name='ajst'),
 
     # Lightcurves
     path('lightcurves/', views_lightcurves.lightcurves, name='lightcurves'),

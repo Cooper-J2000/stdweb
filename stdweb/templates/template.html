@@ -98,6 +98,11 @@
                 <a class="nav-link" href="{% url 'skyportal' %}">SkyPortal</a>
               </li>
             {% endif %}
+            {% if perms.stdweb.ajst_upload and settings.AJST_TOKEN %}
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'ajst' %}">AJST</a>
+              </li>
+            {% endif %}
           </ul>
 
           <ul class="navbar-nav ms-auto me-2">

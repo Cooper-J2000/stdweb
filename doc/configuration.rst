@@ -75,6 +75,14 @@ External Services
      - Description
    * - ``SKYPORTAL_TOKEN``
      - SkyPortal API token for transient submission
+   * - ``AJST_BASE_URL``
+     - Base URL of the AJST transient catalog API (default ``http://localhost:5000``)
+   * - ``AJST_TOKEN``
+     - AJST catalog ingest API token (Bearer); if unset, the AJST upload UI is hidden
+   * - ``AJST_DEFAULT_TELESCOPE``
+     - Default ``telescope`` value for uploaded photometry (default ``AJST``)
+   * - ``AJST_DEFAULT_INSTRUMENT``
+     - Default ``instrument`` value for uploaded photometry (default ``STDWeb``)
 
 Example Configuration
 ---------------------
