@@ -10,7 +10,8 @@
 ## 目录
 
 - [部署架构](#部署架构)
-- [本地化改动（相对上游，共 9 项）](#本地化改动相对上游共-9-项)
+- [开机自启动](#开机自启动)
+- [本地化改动（相对上游，共 10 项）](#本地化改动相对上游共-10-项)
 - [日常使用](#日常使用)
 - [更新上游代码](#更新上游代码)
 - [环境重装](#环境重装)
@@ -23,8 +24,8 @@
 | 组件 | 说明 | 管理方式 |
 |---|---|---|
 | Redis | 任务队列 broker（系统服务，仅 127.0.0.1:6379） | `sudo systemctl start/stop redis-server` |
-| Celery worker | 后台处理，6 并发（12 个 astropy worker 对 15GB 内存偏多） | `start_stdweb.sh` / `stop_stdweb.sh` |
-| Django runserver | Web 服务，仅监听 127.0.0.1:8000 | `start_stdweb.sh` / `stop_stdweb.sh` |
+| Celery worker | 后台处理，6 并发（12 个 astropy worker 对 15GB 内存偏多） | systemd 用户服务 `stdweb-celery.service`（开机自启），或 `start_stdweb.sh` / `stop_stdweb.sh` |
+| Django runserver | Web 服务，仅监听 127.0.0.1:8000 | systemd 用户服务 `stdweb-django.service`（开机自启），或 `start_stdweb.sh` / `stop_stdweb.sh` |
 | conda 环境 | `stdweb`（Python 3.12.13） | 见下文 |
 
 Python 环境：`/home/ajst/miniconda3/envs/stdweb/bin/python`
@@ -38,11 +39,33 @@ Python 环境：`/home/ajst/miniconda3/envs/stdweb/bin/python`
 - 上传数据（公共文件区）：`stdweb/data/`（.gitignore）
 - 任务文件：`stdweb/tasks/`（.gitignore）
 - 巡天模板缓存：`stdweb/ps1_cache/`（.gitignore，可界面一键清理，见本地化改动第 8 项）
-- 配置：`stdweb/.env`（.gitignore，含 SECRET_KEY、二进制路径、STDPIPE_PS1_CACHE）
+- 配置：`stdweb/.env`（.gitignore，含 SECRET_KEY、二进制路径、STDPIPE_PS1_CACHE、AJST_TOKEN）
 - 数据库：`stdweb/db.sqlite3`（.gitignore）
 - 日志：`celery.log`、`server.log`（runserver 文件日志）、`django.log`（异常日志，见日志章节）
 
-## 本地化改动（相对上游，共 9 项）
+## 开机自启动
+
+Celery 和 Django 由 **systemd 用户级服务**托管，开机自动拉起（无需登录桌面，
+用户 `ajst` 已开启 linger；Redis 本身已是 enabled 的系统服务）：
+
+- 单元文件：`~/.config/systemd/user/stdweb-celery.service`、`~/.config/systemd/user/stdweb-django.service`
+  （日志仍分别写入项目根目录 `celery.log` / `server.log`，与原 nohup 方式一致）
+- celery 另有 drop-in `~/.config/systemd/user/stdweb-celery.service.d/override.conf`：
+  注入 `LD_LIBRARY_PATH=/home/ajst/Astro_Software/cfitsio_latest/lib`，否则 systemd 干净环境下
+  HOTPANTS 找不到 `libcfitsio.so.10`（库不在系统路径，只在 ~/.bashrc 里 export），
+  图像相减会静默失败（日志只有 "HOTPANTS run failed" 警告，任务状态照样显示 subtraction_done）。
+- 常用命令：
+  ```bash
+  systemctl --user status stdweb-celery stdweb-django   # 查看状态
+  systemctl --user restart stdweb-celery                # 改了 .py 后重启 celery
+  systemctl --user stop/start stdweb-django             # 手动停/启
+  systemctl --user disable stdweb-celery stdweb-django  # 取消开机自启
+  ```
+- 崩溃自动重启：`Restart=on-failure`（对本机偶发 SIGSEGV 的硬件问题有自愈效果）。
+- `start_stdweb.sh` / `stop_stdweb.sh` 仍可用：systemd 托管的进程能被脚本 pgrep 识别，
+  且 SIGTERM 退出码属"正常退出"不会触发 systemd 自动重启，两种方式不冲突。
+
+## 本地化改动（相对上游，共 10 项）
 
 全部提交在 `local-zh` 分支，master 保持与上游一致。`git log --oneline local-zh` 可查完整历史。
 
@@ -77,6 +100,19 @@ Python 环境：`/home/ajst/miniconda3/envs/stdweb/bin/python`
 9. **运维脚本**：`start_stdweb.sh` / `stop_stdweb.sh`（celery 并发固定 6；
    stop 脚本在 pkill 后等待进程完全退出（runserver 10s / celery 20s 超时强制 kill），
    修复了"stop 后立即 start 时旧 celery 未退净导致误判已在运行"的竞态）。
+10. **上传测光结果至 AJST 星表（AJST_Transient_lc_Cata）**：新增 `views_ajst.py` +
+    `templates/ajst.html` + `AJSTSelectForm`（forms.py）+ 路由 `/ajst/` +
+    权限 `stdweb.ajst_upload`（migration 0017，仅 Meta 变更）。
+    入口：导航栏 + 任务页直接测光/模板相减两个区块的按钮（门控
+    `perms.stdweb.ajst_upload and settings.AJST_TOKEN`）。
+    三步流程：选择（任务 ID 范围 + direct/subtracted 复选）→ 卡片式可编辑预览
+    （所有字段可改，按磁盘实际存在的 target.vot/sub_target.vot 逐行出卡片、逐行勾选）
+    → 上传（以表单提交值为准，不重读 .vot）。
+    对端是 AJST 星表的 ingest API（Bearer token，见该项目的 技术文档.md §8.14）。
+    配置：`.env` 的 `AJST_BASE_URL` / `AJST_TOKEN`（另见 doc/configuration.rst 与 README.md）。
+    **完整设计与实施档案见 `doc/ajst_upload_design.md`**（含接口契约、去重规则、修订记录）。
+    顺带修复：`skyportal()` 视图补上缺失的 `@permission_required('stdweb.skyportal_upload')`
+    （此前仅靠隐藏入口"禁用"，登录用户直接 POST 即可用）。
 
 其他小改动：`settings.py` 增加 LOGGING 配置（django.log 异常日志，见日志章节）。
 
@@ -196,6 +232,7 @@ django.log 是本地诊断日志（untracked），可随时删除。
 | Files 导入任务报错/任务目录空 | 检查是否复现 ext=auto 500 bug（本地化改动第 7 项已修）；任务目录空说明导入时 image.fits 未复制，删除空壳任务重新导入 |
 | 盲解算失败 | 检查 /etc/astrometry.cfg 的 add_path 是否指向 index 目录（cpulimit 300 是 5 分钟上限） |
 | 模板相减下载模板失败 | 需要外网；PS1 模板检查 `tail -20 celery.log` 下载报错；LS(Legacy Survey) 模板在 DR9 north 部分天区（如 RA 11-12 附近）NERSC coadd 路径无数据，北天目标建议直接用 PS1 |
+| 模板相减"成功"但无差分产物 | HOTPANTS 报 `libcfitsio.so.10: cannot open shared object file`：celery 的 systemd 环境缺 `LD_LIBRARY_PATH`。已由 drop-in `stdweb-celery.service.d/override.conf` 修复（见[开机自启动](#开机自启动)）；注意相减失败只记 warning，任务状态仍显示 subtraction_done，需看 celery.log 确认 |
 | 改 .env 后不生效 | 重启服务：`stop_stdweb.sh && start_stdweb.sh` |
 | python 进程段错误 (SIGSEGV) | 见[已知硬件问题](#已知硬件问题) |
 

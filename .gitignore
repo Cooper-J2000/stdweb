@@ -133,3 +133,4 @@ db.sqlite3*
 dump.rdb
 
 /notebooks/
+ps1_cache/
