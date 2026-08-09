@@ -11,7 +11,7 @@
 
 - [部署架构](#部署架构)
 - [开机自启动](#开机自启动)
-- [本地化改动（相对上游，共 10 项）](#本地化改动相对上游共-10-项)
+- [本地化改动（相对上游，共 11 项）](#本地化改动相对上游共-11-项)
 - [日常使用](#日常使用)
 - [更新上游代码](#更新上游代码)
 - [环境重装](#环境重装)
@@ -65,7 +65,7 @@ Celery 和 Django 由 **systemd 用户级服务**托管，开机自动拉起（�
 - `start_stdweb.sh` / `stop_stdweb.sh` 仍可用：systemd 托管的进程能被脚本 pgrep 识别，
   且 SIGTERM 退出码属"正常退出"不会触发 systemd 自动重启，两种方式不冲突。
 
-## 本地化改动（相对上游，共 10 项）
+## 本地化改动（相对上游，共 11 项）
 
 全部提交在 `local-zh` 分支，master 保持与上游一致。`git log --oneline local-zh` 可查完整历史。
 
@@ -113,6 +113,16 @@ Celery 和 Django 由 **systemd 用户级服务**托管，开机自动拉起（�
     **完整设计与实施档案见 `doc/ajst_upload_design.md`**（含接口契约、去重规则、修订记录）。
     顺带修复：`skyportal()` 视图补上缺失的 `@permission_required('stdweb.skyportal_upload')`
     （此前仅靠隐藏入口"禁用"，登录用户直接 POST 即可用）。
+11. **默认参数与文件头关键字调整**（2026-08-09）：
+    - "初始检查与掩模"的"宇宙线掩模"默认**不勾选**（forms.py `mask_cosmics` initial=False；
+      inspect.py 处理端 `config.get('mask_cosmics', ...)` 默认同步改 False）；
+    - 文件头解析新增两个关键字：时间 `DATE-MID`（曝光中值时刻，优先级高于 DATE-OBS，
+      在 stdpipe `utils.py` 的 `get_obs_time`，local-fixes 分支）；滤光片 `FAFLTNM`
+      （inspect.py 的关键字遍历列表，排在 FILTER/FILTERS/CAMFILT 之后）；
+    - "测光与天体测量"的"相对孔径, FWHM"默认 1.5（forms.py initial + inspect.py 默认同步）；
+    - "模板相减"的"HOTPANTS 附加参数"默认 `{"ko": 2, "bgo": 2}`（forms.py initial +
+      inspect.py 默认同步）。
+    - 注意：新默认值只对**新任务**生效；旧任务 config 已存的值会以 `initial=task.config` 覆盖显示。
 
 其他小改动：`settings.py` 增加 LOGGING 配置（django.log 异常日志，见日志章节）。
 
