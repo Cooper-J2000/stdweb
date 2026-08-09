@@ -90,7 +90,7 @@ def inspect_image(filename, config, verbose=True, show=False):
     config['sn'] = config.get('sn', 5)
     config['initial_aper'] = config.get('initial_aper', 3)
     config['initial_r0'] = config.get('initial_r0', 0)
-    config['rel_aper'] = config.get('rel_aper', 1)
+    config['rel_aper'] = config.get('rel_aper', 1.5)
     config['rel_bg1'] = config.get('rel_bg1', 5)
     config['rel_bg2'] = config.get('rel_bg2', 7)
     config['spatial_order'] = config.get('spatial_order', 2)
@@ -98,7 +98,7 @@ def inspect_image(filename, config, verbose=True, show=False):
     config['use_color'] = config.get('use_color', True)
     config['refine_wcs'] = config.get('refine_wcs', True)
     config['blind_match_wcs'] = config.get('blind_match_wcs', False)
-    config['hotpants_extra'] = config.get('hotpants_extra', {'ko':0, 'bgo':0})
+    config['hotpants_extra'] = config.get('hotpants_extra', {'ko':2, 'bgo':2})
     config['sub_size'] = config.get('sub_size', 1000)
     config['sub_overlap'] = config.get('sub_overlap', 50)
     config['sub_verbose'] = config.get('sub_verbose', False)
@@ -143,7 +143,7 @@ def inspect_image(filename, config, verbose=True, show=False):
     # Filter
     if not config.get('filter'):
         config['filter'] = 'unknown'
-        for kw in ['FILTER', 'FILTERS', 'CAMFILT']:
+        for kw in ['FILTER', 'FILTERS', 'CAMFILT', 'FAFLTNM']:
             if kw in header:
                 config['filter'] = str(header.get(kw)).strip()
                 break
@@ -207,7 +207,7 @@ def inspect_image(filename, config, verbose=True, show=False):
         config['bg_size'] = bg_size
 
     # Cosmics
-    if config.get('mask_cosmics', True):
+    if config.get('mask_cosmics', False):
         cmask = mask_cosmics(
             image, mask,
             gain=config.get('gain', 1),

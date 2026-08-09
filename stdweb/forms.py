@@ -206,7 +206,7 @@ class TaskInspectForm(forms.Form):
     time = forms.CharField(max_length=30, required=False, empty_value=None, label="时间")
     gain = forms.FloatField(min_value=0, required=False, label="增益, e/ADU")
     saturation = forms.FloatField(min_value=0, required=False, label="饱和值, ADU")
-    mask_cosmics = forms.BooleanField(initial=True, required=False, label="宇宙线掩模")
+    mask_cosmics = forms.BooleanField(initial=False, required=False, label="宇宙线掩模")
 
     raw_config = forms.JSONField(initial=False, required=False, label="原始配置 JSON", encoder=PrettyJSONEncoder)
 
@@ -251,7 +251,7 @@ class TaskPhotometryForm(forms.Form):
     initial_r0 = forms.FloatField(min_value=0, required=False, label="平滑核, 像素")
     bg_size = forms.IntegerField(min_value=0, required=False, label="背景网格大小")
     minarea = forms.IntegerField(min_value=0, required=False, label="最小目标面积")
-    rel_aper = forms.FloatField(min_value=0, required=False, label="相对孔径, FWHM")
+    rel_aper = forms.FloatField(min_value=0, initial=1.5, required=False, label="相对孔径, FWHM")
     rel_bg1 = forms.FloatField(min_value=0, required=False, label="天光内环, FWHM")
     rel_bg2 = forms.FloatField(min_value=0, required=False, label="外环, FWHM")
     fwhm_override = forms.FloatField(min_value=0, required=False, label="FWHM 覆盖值, 像素")
@@ -389,7 +389,7 @@ class TaskSubtractionForm(forms.Form):
     form_type = forms.CharField(initial='subtraction', widget=forms.HiddenInput())
     template = forms.ChoiceField(choices=[(_,supported_templates[_]['name']) for _ in supported_templates.keys()],
                                  required=False, label="模板")
-    hotpants_extra = forms.JSONField(required=False, label="HOTPANTS 附加参数", widget=forms.TextInput)
+    hotpants_extra = forms.JSONField(initial={'ko': 2, 'bgo': 2}, required=False, label="HOTPANTS 附加参数", widget=forms.TextInput)
     sub_size = forms.IntegerField(min_value=0, required=False, label="子图大小")
     sub_overlap = forms.IntegerField(min_value=0, required=False, label="子图重叠")
     sub_verbose = forms.BooleanField(required=False, label="详细输出")
