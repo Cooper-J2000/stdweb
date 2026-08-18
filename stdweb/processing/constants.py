@@ -12,14 +12,14 @@ supported_filters = {
     'R': {'name':'Johnson-Cousins R', 'aliases':["Rc"]},
     'I': {'name':'Johnson-Cousins I', 'aliases':["Ic", "I'"]},
     # Sloan-like
-    'u': {'name':'Sloan u', 'aliases':["sdssu", "SDSS u", "SDSS-u", "SDSS-u'", "Sloan-u", "sloanu", "Sloan u", "Su", "SU", "sU"]},
-    'g': {'name':'Pan-STARRS g', 'aliases':["sdssg", "SDSS g", "SDSS-g", "SDSS-g'", "Sloan-g", "sloang", "Sloan g", "Sg", "SG", "sG", "ZTF_g"]},
-    'r': {'name':'Pan-STARRS r', 'aliases':["sdssr", "SDSS r", "SDSS-r", "SDSS-r'", "Sloan-r", "sloanr", "Sloan r", "Sr", "SR", "sR", "ZTF_r"]},
-    'i': {'name':'Pan-STARRS i', 'aliases':["sdssi", "SDSS i", "SDSS-i", "SDSS-i'", "Sloan-i", "sloani", "Sloan i", "Si", "SI", "sI", "ZTF_i"]},
+    'u': {'name':'Sloan u', 'aliases':["sdssu", "SDSS u", "SDSS-u", "SDSS-u'", "Sloan-u", "sloanu", "Sloan u", "Su", "SU", "sU", "up"]},
+    'g': {'name':'Pan-STARRS g', 'aliases':["sdssg", "SDSS g", "SDSS-g", "SDSS-g'", "Sloan-g", "sloang", "Sloan g", "Sg", "SG", "sG", "ZTF_g", "gp"]},
+    'r': {'name':'Pan-STARRS r', 'aliases':["sdssr", "SDSS r", "SDSS-r", "SDSS-r'", "Sloan-r", "sloanr", "Sloan r", "Sr", "SR", "sR", "ZTF_r", "rp"]},
+    'i': {'name':'Pan-STARRS i', 'aliases':["sdssi", "SDSS i", "SDSS-i", "SDSS-i'", "Sloan-i", "sloani", "Sloan i", "Si", "SI", "sI", "ZTF_i", "ip"]},
     'z': {'name':'Pan-STARRS z', 'aliases':["sdssz", "SDSS z", "SDSS-z", "SDSS-z'", "Sloan-z", "sloanz", "Sloan z", "Sz", "SZ", "sZ"]},
     'y': {'name':'Pan-STARRS y', 'aliases':["sdssy", "SDSS y", "SDSS-y", "SDSS-y'", "Sloan-y", "sloany", "Sloan y", "Sy", "SY", "sY"]},
     # Gaia
-    'G': {'name':'Gaia G', 'aliases':[]},
+    'G': {'name':'Gaia G', 'aliases':['w']},
     'BP': {'name':'Gaia BP', 'aliases':[]},
     'RP': {'name':'Gaia RP', 'aliases':[]},
     # 2MASS
@@ -32,6 +32,10 @@ supported_catalogs = {
     'gaiadr3syn': {'name':'Gaia DR3 synphot', 'filters':['U', 'B', 'V', 'R', 'I', 'u', 'g', 'r', 'i', 'z', 'y'],
                    'limit': 'rmag'},
     'ps1': {'name':'Pan-STARRS DR1', 'filters':['B', 'V', 'R', 'I', 'g', 'r', 'i', 'z', 'y'],
+            'limit':'rmag'},
+    'ps1dr2': {'name':'Pan-STARRS DR2', 'filters':['B', 'V', 'R', 'I', 'g', 'r', 'i', 'z', 'y'],
+            'limit':'rmag'},
+    'lsdr11': {'name':'Legacy Survey DR11', 'filters':['B', 'V', 'R', 'I', 'g', 'r', 'i', 'z'],
             'limit':'rmag'},
     'skymapper': {'name':'SkyMapper DR4', 'filters':['B', 'V', 'R', 'I', 'g', 'r', 'i', 'z', 'y'],
                   'limit':'rPSF'},
@@ -57,6 +61,7 @@ supported_templates = {
     'custom': {'name': 'Custom template'},
     'ps1': {'name': 'Pan-STARRS DR2', 'filters': {'g', 'r', 'i', 'z'}},
     'ls': {'name': 'Legacy Survey DR10', 'filters': {'g', 'r', 'i', 'z'}},
+    'ls11': {'name': 'Legacy Survey DR11', 'filters': {'g', 'r', 'i', 'z'}},
     'skymapper': {'name': 'SkyMapper DR4 (HiPS)', 'filters': {
         'u': 'CDS/P/skymapper-U', # DR1 fallback
         'g': 'CDS/P/Skymapper/DR4/g',

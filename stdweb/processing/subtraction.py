@@ -178,18 +178,23 @@ def subtract_image(filename, config, verbose=True, show=False):
         fits_write(os.path.join(basepath, 'sub_mask.fits'), mask1.astype(np.uint8), header1, compress=True)
 
         # Get the template
-        if tname == 'ps1' or tname == 'ls':
+        if tname in ('ps1', 'ls', 'ls11'):
             log(f"Getting the template from original {tconf['name']} archive")
+            # One cache subdirectory per survey to keep them cleanly separated
+            # (DR11 brick files also share the names of DR10 ones - separate
+            # directories avoid serving stale DR10 data)
+            t_cachedir = os.path.join(_cachedir, tname)
             tmpl,tmask = templates.get_survey_image_and_mask(
                 tfilter, survey=tname, wcs=wcs1, shape=image1.shape,
-                _cachedir=_cachedir, _cache_downscale = 1 if pixscale*3600 < 0.6 else 2,
+                _cachedir=t_cachedir, _cache_downscale = 1 if pixscale*3600 < 0.6 else 2,
                 _tmpdir=settings.STDPIPE_TMPDIR,
                 verbose=sub_verbose)
             if tmask is not None and tmpl is not None:
                 if tname == 'ps1':
                     tmask = tmask > 0
-                elif tname == 'ls':
-                    # Bitmask for a given band, as described at https://www.legacysurvey.org/dr10/bitmasks/
+                elif tname in ('ls', 'ls11'):
+                    # Bitmask for a given band, as described at https://www.legacysurvey.org/dr11/bitmasks/
+                    # (bit assignments are identical between DR10 and DR11)
                     imask = 0x0000
                     imask |= 0x0001 # not primary brick area
                     # imask |= 0x0002 # bright star nearby
@@ -230,8 +235,11 @@ def subtract_image(filename, config, verbose=True, show=False):
 
         else:
             log("Getting the template from HiPS server")
+            # One cache subdirectory per survey; canonical grid-aligned tiles
+            # are cached there so nearby tasks share them
             tmpl = templates.get_hips_image(tconf['filters'][tfilter], wcs=wcs1, shape=image1.shape,
                                             get_header=False,
+                                            _cachedir=os.path.join(_cachedir, tname),
                                             verbose=sub_verbose)
             if tmpl is not None:
                 tmask = np.isnan(tmpl)

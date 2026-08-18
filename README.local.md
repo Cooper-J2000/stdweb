@@ -11,7 +11,7 @@
 
 - [部署架构](#部署架构)
 - [开机自启动](#开机自启动)
-- [本地化改动（相对上游，共 11 项）](#本地化改动相对上游共-11-项)
+- [本地化改动（相对上游，共 12 项）](#本地化改动相对上游共-12-项)
 - [日常使用](#日常使用)
 - [更新上游代码](#更新上游代码)
 - [环境重装](#环境重装)
@@ -65,7 +65,7 @@ Celery 和 Django 由 **systemd 用户级服务**托管，开机自动拉起（�
 - `start_stdweb.sh` / `stop_stdweb.sh` 仍可用：systemd 托管的进程能被脚本 pgrep 识别，
   且 SIGTERM 退出码属"正常退出"不会触发 systemd 自动重启，两种方式不冲突。
 
-## 本地化改动（相对上游，共 11 项）
+## 本地化改动（相对上游，共 12 项）
 
 全部提交在 `local-zh` 分支，master 保持与上游一致。`git log --oneline local-zh` 可查完整历史。
 
@@ -85,10 +85,11 @@ Celery 和 Django 由 **systemd 用户级服务**托管，开机自动拉起（�
 5. **Files 页面上传（支持多选）**：文件列表页顶部"上传到数据区"表单，可一次选多个文件
    （`views.py` 的 `upload_data` 视图 + `urls.py` 注册 + `files.html` `multiple` 属性）。
    文件存入 DATA_PATH 但不创建任务；同名文件跳过并列出；文件名经 `os.path.basename` 净化防穿越。
-6. **首页清理模板缓存按钮**：上传表单下方"清理模板缓存"（`views.py` 的 `clear_cache` +
-   `urls.py` 注册 + `index.html`）。显示当前缓存大小，点击确认后清空 ps1_cache/ 并报告释放空间，
-   重新处理相同天区时自动重新下载。登录保护。
-   **注意**：首页 '/' 实际由 `upload_file` 视图渲染（不是 index 视图），cache_size 需两处提供。
+6. **首页缓存管理面板**：上传表单下方"缓存管理"卡片（`views.py` 的 `get_cache_entries` +
+   `clear_cache` + `index.html`）。按巡天逐项列出缓存目录（ps1/ls/ls11/lsdr11 及各 HiPS
+   巡天，均为 ps1_cache/ 下的子目录）及 astropy 下载缓存、astroquery 查询缓存，
+   每项显示当前大小并可单独清除（POST `key` 白名单校验）。登录保护。
+   **注意**：首页 '/' 实际由 `upload_file` 视图渲染（不是 index 视图），cache_entries 需两处提供。
 7. **Bug 修复：Files 导入任务 500（ext=auto）**：`UploadFileForm` 新增 ext 字段后，
    Files 详情页表单默认带 `ext=auto`，但 `upload_file` 的 local_files 分支只判断 `ext is None`，
    `'auto'` 会走 `int('auto'[0])` 抛 ValueError → 500（任务创建但 image.fits 未复制）。
@@ -123,6 +124,45 @@ Celery 和 Django 由 **systemd 用户级服务**托管，开机自动拉起（�
     - "模板相减"的"HOTPANTS 附加参数"默认 `{"ko": 2, "bgo": 2}`（forms.py initial +
       inspect.py 默认同步）。
     - 注意：新默认值只对**新任务**生效；旧任务 config 已存的值会以 `initial=task.config` 覆盖显示。
+12. **新增星表与模板支持**（2026-08-15）：
+    - "测光与天体测量"参考星表新增 **Pan-STARRS DR2**（`ps1dr2`）和 **Legacy Survey DR11**
+      （`lsdr11`）；"模板相减"模板新增 **Legacy Survey DR11**（`ls11`）。
+    - stdweb 侧：`processing/constants.py` 的 `supported_catalogs`/`supported_templates` 各加条目
+      （表单下拉自动生效）；`processing/photometry.py` 对 `lsdr11` 改调
+      `stdpipe.catalogs.get_cat_lsdr11()`；`processing/subtraction.py` 模板分支纳入 `ls11`
+      （maskbits 位定义 DR11 与 DR10 相同），且 `ls11` 模板缓存用 `ps1_cache/ls11/` 子目录
+      （DR11 砖文件名与 DR10 相同，防止串缓存）。
+    - stdpipe 侧（local-fixes 分支）：`catalogs.py` 加 `ps1dr2`（指向 Vizier `II/389/ps1_dr2`；
+      注意 `II/349` 是 DR1、`II/389` 才是 DR2，原 `ps1` 条目未动）和 `get_cat_lsdr11()`（从 NERSC 逐砖下载
+      `tractor-<brick>.fits`，流量转星等 `mag=22.5-2.5log10(flux)`，复用 PS1 换算增广 BVRI）；
+      `templates.py` 的 `find_skycells`/`get_skycells` 支持 `survey='ls11'`（dr11/south、
+      dr11/north coadd）；新增数据文件 `stdpipe/data/legacysurvey_dr11_bricks.fits.gz`
+      （由 `data/legacysurvey_dr11.py` 一次性生成）。
+    - 注意：DR11 north（BASS/MzLS）无 i 波段（其 tractor 砖表**完全没有 flux_i 列**，
+      读取时自动补零 → imag 为 NaN，2026-08-15 修复此导致的 KeyError）；砖选择除球面粗选外
+      再按 0.25°×0.25° 砖盒与视场圆的实际重叠过滤，避免下载不搭界的角部砖；
+      LS 星表流量已做银河消光修正，与 PS1 等未消光星表混合时定零可能有微小系统差；
+      `lsdr11` 星表按砖缓存于 `STDPIPE_PS1_CACHE/lsdr11/`（首页缓存管理面板可单独清理）。
+13. **缓存机制改造**（2026-08-18）：
+    - **按巡天分目录**：`STDPIPE_PS1_CACHE` 仍为根目录，其下每个巡天一个子目录
+      （`ps1/`、`ls/`、`ls11/`、`lsdr11/` 星表，以及 HiPS 巡天 `skymapper/`、`des/`、
+      `decaps/`、`ztf/`、`2mass/`）。`processing/subtraction.py` 按模板名拼接子目录。
+      原根目录下平铺的 PS1 skycell 已迁入 `ps1/`。
+    - **HiPS 模板本地缓存**（stdpipe `templates.py`）：`get_hips_image` 新增 `_cachedir`
+      参数。请求被规范化为网格对齐、加边填充的 tile（中心按半视场间距对齐天区网格、
+      尺寸补足，文件名含巡天+尺寸+量化中心+CD矩阵哈希），缓存命中后经
+      `reproject_lanczos` 重投影到任务精确网格；asinh 线性化在存盘前完成。
+      upscale 请求不走缓存。
+    - **flock 进程间锁**（stdpipe `utils.file_lock`）：skycell、HiPS tile、LS DR11
+      星表砖三处下载均先抢独占锁并锁内二次检查，杜绝多 worker 并发重复下载；
+      锁文件遗留（空文件无害），崩溃自动释放。
+    - **astropy 下载缓存不再增长**：`fits_open_remote` 默认 `cache=False`
+      （管线有自己的文件缓存，astropy 的 URL 缓存永不过期只会膨胀）；
+      HiPS 下载同样 `cache=False`。已有的 2.4GB astropy 下载缓存已清空。
+14. **滤光片别名本地化**（2026-08-18）：`processing/constants.py` 的 `supported_filters`
+    新增别名——`up`→Sloan u、`gp`/`rp`/`ip`→Pan-STARRS g/r/i、`w`→Gaia G。
+    inspect 步骤从 FITS 头读到这些值时自动归一化，测光定标随之选用对应星表波段
+    （u 可用 gaiadr3syn/sdss；G 可用 gaiaedr3）。
 
 其他小改动：`settings.py` 增加 LOGGING 配置（django.log 异常日志，见日志章节）。
 

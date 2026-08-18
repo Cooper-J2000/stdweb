@@ -39,14 +39,14 @@ Parameters used during the initial image inspection stage (`inspect_image()`).
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `cat_name` | str | Auto | Reference catalog name. Auto-suggested based on sky position and filter. Options: `ps1`, `gaiaedr3`, `gaiadr3syn`, `skymapper`, `sdss`, `atlas`, `2mass`, `vhs`. |
+| `cat_name` | str | Auto | Reference catalog name. Auto-suggested based on sky position and filter. Options: `ps1`, `ps1dr2`, `lsdr11`, `gaiaedr3`, `gaiadr3syn`, `skymapper`, `sdss`, `atlas`, `2mass`, `vhs`. |
 | `cat_limit` | float | 20.0 | Magnitude limit for reference catalog query. |
 
 ### Template Selection
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `template` | str | Auto | Template image source. Auto-suggested based on sky position. Options: `ps1`, `ls`, `skymapper`, `des`, `decaps`, `ztf`, `2mass`, `custom`. |
+| `template` | str | Auto | Template image source. Auto-suggested based on sky position. Options: `ps1`, `ls`, `ls11`, `skymapper`, `des`, `decaps`, `ztf`, `2mass`, `custom`. |
 
 ---
 
@@ -153,7 +153,7 @@ Parameters for image subtraction and difference imaging (`subtract_image()`).
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `template` | str | 'ps1' | Template source: `ps1`, `ls` (Legacy Survey), `skymapper`, `des`, `decaps`, `ztf`, `custom`. |
+| `template` | str | 'ps1' | Template source: `ps1`, `ls` (Legacy Survey DR10/DR9), `ls11` (Legacy Survey DR11), `skymapper`, `des`, `decaps`, `ztf`, `custom`. |
 | `template_fwhm_override` | float | None | Override template FWHM measurement (pixels). |
 | `custom_template_gain` | float | 10000 | Assumed gain for custom template images (e-/ADU). |
 | `custom_template_saturation` | float | None | Saturation level for custom template (ADU). |
@@ -317,6 +317,8 @@ band that best matches the instrumental passband (smallest color term).
 | Catalog | Coverage | Filters | Notes |
 |---------|----------|---------|-------|
 | `ps1` | Dec > -30° | BVRI, grizy | Pan-STARRS DR1 |
+| `ps1dr2` | Dec > -30° | BVRI, grizy | Pan-STARRS DR2 (Vizier II/389) |
+| `lsdr11` | LS DR11 footprint | BVRI, griz | Legacy Survey DR11, from NERSC tractor bricks (dereddened fluxes; no y band) |
 | `gaiaedr3` | All-sky | G, BP, RP | Gaia eDR3 photometry |
 | `gaiadr3syn` | All-sky | UBVRI, ugrizy | Gaia DR3 synthetic photometry |
 | `skymapper` | Southern sky | BVRI, grizy | SkyMapper DR4 |
@@ -331,6 +333,7 @@ band that best matches the instrumental passband (smallest color term).
 |----------|----------|---------|------------|
 | `ps1` | Dec > -30° | grizy | 0.25"/pix |
 | `ls` | Dec > -20° | grz | 0.26"/pix |
+| `ls11` | LS DR11 footprint | griz (north: grz) | 0.26"/pix |
 | `skymapper` | Dec < +5° | uvgriz | 0.5"/pix |
 | `des` | Limited | grizY | 0.26"/pix |
 | `decaps` | Galactic plane | grizY | 0.26"/pix |

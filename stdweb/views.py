@@ -35,18 +35,19 @@ from .action_logging import log_action
 from . import celery_tasks
 
 
-def cache_size_str():
-    """Human-readable size of the survey template cache, or None if not configured."""
-    cache_dir = settings.STDPIPE_PS1_CACHE
-    if not cache_dir or not os.path.isdir(cache_dir):
-        return None
+def _dir_size(path):
+    """Total size of all files under a directory, in bytes."""
     total = 0
-    for root, dirs, files in os.walk(cache_dir):
+    for root, dirs, files in os.walk(path):
         for f in files:
             try:
                 total += os.path.getsize(os.path.join(root, f))
             except OSError:
                 pass
+    return total
+
+
+def _human_size(total):
     if total > 1024 ** 3:
         return f"{total / 1024 ** 3:.1f} GB"
     elif total > 1024 ** 2:
@@ -55,9 +56,62 @@ def cache_size_str():
         return f"{total / 1024:.0f} KB"
 
 
+def get_cache_entries():
+    """List of clearable caches: one directory per survey under
+    STDPIPE_PS1_CACHE, plus astropy's download and astroquery caches."""
+    labels = {
+        'ps1': 'Pan-STARRS DR2 模板图像',
+        'ls': 'Legacy Survey DR10 模板图像',
+        'ls11': 'Legacy Survey DR11 模板图像',
+        'lsdr11': 'Legacy Survey DR11 星表',
+        'skymapper': 'SkyMapper 模板图像 (HiPS)',
+        'des': 'DES DR2 模板图像 (HiPS)',
+        'decaps': 'DECaPS DR2 模板图像 (HiPS)',
+        'ztf': 'ZTF DR7 模板图像 (HiPS)',
+        '2mass': '2MASS 模板图像 (HiPS)',
+    }
+
+    entries = []
+
+    root = settings.STDPIPE_PS1_CACHE
+    if root and os.path.isdir(root):
+        for name in sorted(os.listdir(root)):
+            path = os.path.join(root, name)
+            if not os.path.isdir(path):
+                continue
+            entries.append({
+                'key': 'tpl:' + name,
+                'label': labels.get(name, f'{name} 模板/星表缓存'),
+                'path': path,
+                'size': _dir_size(path),
+            })
+
+    try:
+        from astropy.config.paths import get_cache_dir
+
+        for key, subdir, label in [
+            ('astropy_download', 'download', 'astropy URL 下载缓存'),
+            ('astroquery', 'astroquery', 'astroquery 星表查询缓存'),
+        ]:
+            path = os.path.join(get_cache_dir(), subdir)
+            entries.append({
+                'key': key,
+                'label': label,
+                'path': path,
+                'size': _dir_size(path) if os.path.isdir(path) else 0,
+            })
+    except Exception:
+        pass
+
+    for entry in entries:
+        entry['size_str'] = _human_size(entry['size'])
+
+    return entries
+
+
 def index(request):
     context = {}
-    context['cache_size'] = cache_size_str()
+    context['cache_entries'] = get_cache_entries()
 
     return TemplateResponse(request, 'index.html', context=context)
 
@@ -496,35 +550,42 @@ def handle_uploaded_file(upload, filename):
 
 @login_required
 def clear_cache(request):
-    """Clear the survey template cache (STDPIPE_PS1_CACHE) to free disk space."""
+    """Clear one of the known caches (per-survey template/catalog dirs or
+    astropy/astroquery caches), selected by the whitelisted 'key' parameter."""
     if request.method == "POST":
-        cache_dir = settings.STDPIPE_PS1_CACHE
-        freed = 0
+        key = request.POST.get('key')
+        entries = {e['key']: e for e in get_cache_entries()}
+        entry = entries.get(key)
 
-        if not cache_dir or not os.path.isdir(cache_dir):
-            messages.info(request, "模板缓存目录未配置或不存在，无需清理")
+        if entry is None:
+            messages.error(request, "未知的缓存项目")
+        elif not os.path.isdir(entry['path']):
+            messages.info(request, f"{entry['label']}：目录不存在，无需清理")
+        elif key == 'astropy_download':
+            from astropy.utils.data import clear_download_cache
+
+            clear_download_cache()
+            messages.success(
+                request,
+                f"{entry['label']}已清理，释放 {entry['size_str']}",
+            )
         else:
-            for entry in os.listdir(cache_dir):
-                p = os.path.join(cache_dir, entry)
+            freed = 0
+            for child in os.listdir(entry['path']):
+                p = os.path.join(entry['path'], child)
                 try:
                     if os.path.isfile(p) or os.path.islink(p):
                         freed += os.path.getsize(p)
                         os.remove(p)
                     elif os.path.isdir(p):
-                        for root, dirs, files in os.walk(p, topdown=False):
-                            for f in files:
-                                fp = os.path.join(root, f)
-                                freed += os.path.getsize(fp)
-                                os.remove(fp)
-                            for d in dirs:
-                                os.rmdir(os.path.join(root, d))
-                        os.rmdir(p)
+                        freed += _dir_size(p)
+                        shutil.rmtree(p)
                 except OSError as e:
                     messages.error(request, f"清理失败: {e}")
 
             messages.success(
                 request,
-                f"模板缓存已清理，释放 {freed / 1024 / 1024:.1f} MB"
+                f"{entry['label']}已清理，释放 {_human_size(freed)}"
                 f"（重新处理相同天区时会自动重新下载）",
             )
 
@@ -715,7 +776,7 @@ def upload_file(request, base=settings.DATA_PATH):
         else:
             messages.error(request, "上传文件出错")
 
-    context = {'form': form, 'cache_size': cache_size_str()}
+    context = {'form': form, 'cache_entries': get_cache_entries()}
     return TemplateResponse(request, 'index.html', context=context)
 
 
