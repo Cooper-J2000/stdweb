@@ -68,17 +68,37 @@
 
     </form>
 
-    <!-- Cache cleanup -->
-    <div class="mt-3">
-      <form method="POST" action="{% url 'clear_cache' %}"
-            onsubmit="return confirm('确定要清理模板缓存吗？\\n将删除已下载的巡天模板（PS1/SkyMapper/LS），释放磁盘空间。\\n重新处理相同天区时会自动重新下载。');">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-outline-secondary btn-sm">
-          <i class="fa fa-trash-o me-1"></i>清理模板缓存
-        </button>
-      </form>
-      <small class="text-muted">删除已下载的巡天模板（当前约 {{ cache_size }}），重新处理相同天区时自动重新下载。</small>
-    </div>
+    <!-- Cache management -->
+    {% if cache_entries %}
+      <div class="card mt-3">
+        <div class="card-header py-2">缓存管理</div>
+        <ul class="list-group list-group-flush">
+          {% for entry in cache_entries %}
+            <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+              <div>
+                {{ entry.label }}
+                <small class="text-muted d-none d-md-inline ms-1">{{ entry.path }}</small>
+              </div>
+              <div class="d-flex align-items-center text-nowrap">
+                <span class="badge bg-secondary me-2">{{ entry.size_str }}</span>
+                <form method="POST" action="{% url 'clear_cache' %}"
+                      onsubmit="return confirm('确定要清理「{{ entry.label }}」吗？\n将释放 {{ entry.size_str }} 磁盘空间。\n重新处理相同天区时会自动重新下载。');">
+                  {% csrf_token %}
+                  <input type="hidden" name="key" value="{{ entry.key }}">
+                  <button type="submit" class="btn btn-outline-danger btn-sm"
+                          {% if not entry.size %}disabled{% endif %}>
+                    <i class="fa fa-trash-o"></i> 清除
+                  </button>
+                </form>
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+        <div class="card-footer py-2">
+          <small class="text-muted">缓存均为各巡天模板图像、星表及查询结果，删除后不影响任何任务数据，重新处理相同天区时会自动重新下载。</small>
+        </div>
+      </div>
+    {% endif %}
 
   {% else %}
 

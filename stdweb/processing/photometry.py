@@ -317,7 +317,16 @@ def photometry_image(filename, config, verbose=True, show=False):
 
     # Round the coordinates a bit to optimize consecutive calls to Vizier after WCS refinement
     ra00,dec00,sr00 = round_coords_to_grid(ra0, dec0, sr0)
-    cat = catalogs.get_cat_vizier(ra00, dec00, sr00, config['cat_name'], filters=filters, verbose=verbose)
+
+    if config['cat_name'] == 'lsdr11':
+        # Legacy Survey DR11 is not on Vizier - fetch it from NERSC tractor bricks
+        if settings.STDPIPE_PS1_CACHE:
+            cat_cachedir = os.path.join(settings.STDPIPE_PS1_CACHE, 'lsdr11')
+        else:
+            cat_cachedir = os.path.join(basepath, 'cache', 'lsdr11')
+        cat = catalogs.get_cat_lsdr11(ra00, dec00, sr00, filters=filters, _cachedir=cat_cachedir, verbose=verbose)
+    else:
+        cat = catalogs.get_cat_vizier(ra00, dec00, sr00, config['cat_name'], filters=filters, verbose=verbose)
 
     if not cat or not len(cat):
         raise RuntimeError('Cannot get catalogue stars')
