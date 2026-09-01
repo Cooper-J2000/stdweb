@@ -359,6 +359,8 @@ class TaskTransientsSimpleForm(forms.Form):
     simple_sr0 = forms.FloatField(initial=None, min_value=0, required=False, label="半径, 度")
     simple_blends = forms.BooleanField(initial=True, required=False, label="剔除混合源")
     simple_prefilter = forms.BooleanField(initial=True, required=False, label="剔除预过滤源")
+    simple_saturated = forms.BooleanField(initial=True, required=False, label="保留饱和源")
+    simple_color_term = forms.BooleanField(initial=True, required=False, label="使用颜色项")
     simple_mag_diff = forms.FloatField(initial=2, min_value=0, required=False, label="最小星等差")
 
     def __init__(self, *args, **kwargs):
@@ -381,6 +383,8 @@ class TaskTransientsSimpleForm(forms.Form):
                 Column('simple_skybot', css_class="col-md-auto"),
                 Column('simple_blends', css_class="col-md-auto"),
                 Column('simple_prefilter', css_class="col-md-auto"),
+                Column('simple_saturated', css_class="col-md-auto"),
+                Column('simple_color_term', css_class="col-md-auto"),
             ),
         )
 

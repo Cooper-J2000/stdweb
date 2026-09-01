@@ -336,15 +336,6 @@ def photometry_image(filename, config, verbose=True, show=False):
     cat.write(os.path.join(basepath, 'cat.parquet'), overwrite=True)
     log("Catalogue written to file:cat.parquet")
 
-    if config.get('filter_blends', True):
-        # TODO: merge blended stars, not remove them!
-        cat_filtered = filter_catalogue_blends(cat, 2*fwhm*pixscale)
-        log(f"{len(cat_filtered)} catalogue stars after blend filtering with {3600*fwhm*pixscale:.1f} arcsec radius")
-        # cat.write(os.path.join(basepath, 'cat_filtered.parquet'), overwrite=True)
-        # log("Filtered catalogue written to file:cat_filtered.parquet")
-    else:
-        cat_filtered = cat
-
     # Catalogue settings
     config['cat_col_mag'],config['cat_col_mag_err'] = guess_catalogue_mag_columns(
         config['filter'],
@@ -378,6 +369,35 @@ def photometry_image(filename, config, verbose=True, show=False):
             (not config.get('cat_col_color_mag2') or config['cat_col_color_mag2'] in cat.colnames)):
         raise RuntimeError('Catalogue does not have required magnitudes')
 
+    if config.get('filter_blends', True):
+        # Merge the stars that are not resolved in the image into single entries, keeping
+        # every magnitude the pipeline may later use consistent with the merged flux.
+        # The primary one goes first, as it defines the merged centroids
+        cat_col_mags = [(config['cat_col_mag'], config['cat_col_mag_err'])]
+        cat_col_mags += guess_catalogue_mag_columns_all(config['cat_name'], cat)
+
+        # A group may not end up wider than the aperture that will measure it, otherwise
+        # its summed flux would include the stars the aperture never collects
+        sr_blend = config.get('cat_blend_radius', 0.25)*fwhm*pixscale
+        sr_blend_max = config.get('rel_aper', 1.0)*fwhm*pixscale
+        cat_filtered = filter_catalogue_blends(cat, sr_blend, sr_max=sr_blend_max,
+                                               cat_col_mags=cat_col_mags, verbose=verbose)
+        log(f"{len(cat_filtered)} catalogue stars after merging blends closer than "
+            f"{3600*sr_blend:.1f} arcsec into groups up to {3600*sr_blend_max:.1f} arcsec wide")
+
+        # Reject the ones still significantly contaminated inside the photometric aperture
+        sr_contam = fwhm*pixscale
+        contamination = config.get('cat_contamination', 0.1)
+        cat_filtered = filter_catalogue_contamination(
+            cat_filtered, sr_contam,
+            cat_col_mag=config['cat_col_mag'],
+            contamination=contamination
+        )
+        log(f"{len(cat_filtered)} catalogue stars after rejecting the ones contaminated by more "
+            f"than {100*contamination:.0f}% within {3600*sr_contam:.1f} arcsec")
+    else:
+        cat_filtered = cat
+
     # Optionally limit to a range of catalogue magnitudes
     if config.get('cat_mag_lower') is not None:
         mag_lower = float(config.get('cat_mag_lower'))
@@ -396,9 +416,8 @@ def photometry_image(filename, config, verbose=True, show=False):
         # Exclude pre-filtered detections and limit list size
         obj_ast = obj[(obj['flags'] & 0x800) == 0]
 
-        # FIXME: make the order configurable
         wcs1 = pipeline.refine_astrometry(obj_ast, cat_filtered, fwhm*pixscale,
-                                          wcs=wcs, order=config.get('refine_order', 3), method='scamp',
+                                          wcs=wcs, order=config.get('refine_order', 'auto'), method='scamp',
                                           cat_col_mag=config.get('cat_col_mag'),
                                           cat_col_mag_err=config.get('cat_col_mag_err'),
                                           verbose=verbose,
