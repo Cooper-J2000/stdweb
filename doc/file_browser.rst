@@ -16,7 +16,19 @@ Browsing
   the task (see :doc:`accounts`).
 
 Directory listings show a breadcrumb trail and per-entry type, size, and
-modification time.
+modification time. Listings can be **sorted** by file name or by modification
+time (ascending or descending) via the arrow links in the header row; the
+selected ordering is highlighted.
+
+Deleting Files
+--------------
+
+In the data directory, every regular file carries a per-file delete button.
+Files can also be **batch deleted**: tick the deletion checkboxes in the
+rightmost column (or the header checkbox to select all) and confirm with the
+*Delete selected* button. Symlinks are removed without touching their targets,
+and path traversal outside ``DATA_PATH`` is blocked. Deletion is not available
+inside task directories.
 
 Viewing Files
 -------------
