@@ -12,11 +12,11 @@ supported_filters = {
     'R': {'name':'Johnson-Cousins R', 'aliases':["Rc"]},
     'I': {'name':'Johnson-Cousins I', 'aliases':["Ic", "I'"]},
     # Sloan-like
-    'u': {'name':'Sloan u', 'aliases':["sdssu", "SDSS u", "SDSS-u", "SDSS-u'", "Sloan-u", "sloanu", "Sloan u", "Su", "SU", "sU", "up"]},
-    'g': {'name':'Pan-STARRS g', 'aliases':["sdssg", "SDSS g", "SDSS-g", "SDSS-g'", "Sloan-g", "sloang", "Sloan g", "Sg", "SG", "sG", "ZTF_g", "gp"]},
-    'r': {'name':'Pan-STARRS r', 'aliases':["sdssr", "SDSS r", "SDSS-r", "SDSS-r'", "Sloan-r", "sloanr", "Sloan r", "Sr", "SR", "sR", "ZTF_r", "rp"]},
-    'i': {'name':'Pan-STARRS i', 'aliases':["sdssi", "SDSS i", "SDSS-i", "SDSS-i'", "Sloan-i", "sloani", "Sloan i", "Si", "SI", "sI", "ZTF_i", "ip"]},
-    'z': {'name':'Pan-STARRS z', 'aliases':["sdssz", "SDSS z", "SDSS-z", "SDSS-z'", "Sloan-z", "sloanz", "Sloan z", "Sz", "SZ", "sZ"]},
+    'u': {'name':'Sloan u', 'aliases':["sdssu", "SDSS u", "SDSS-u", "SDSS-u'", "Sloan-u", "sloanu", "Sloan u", "Su", "SU", "sU", "up", "U_Sloan"]},
+    'g': {'name':'Pan-STARRS g', 'aliases':["sdssg", "SDSS g", "SDSS-g", "SDSS-g'", "Sloan-g", "sloang", "Sloan g", "Sg", "SG", "sG", "ZTF_g", "gp", "G_Sloan"]},
+    'r': {'name':'Pan-STARRS r', 'aliases':["sdssr", "SDSS r", "SDSS-r", "SDSS-r'", "Sloan-r", "sloanr", "Sloan r", "Sr", "SR", "sR", "ZTF_r", "rp", "R_Sloan"]},
+    'i': {'name':'Pan-STARRS i', 'aliases':["sdssi", "SDSS i", "SDSS-i", "SDSS-i'", "Sloan-i", "sloani", "Sloan i", "Si", "SI", "sI", "ZTF_i", "ip", "I_Sloan"]},
+    'z': {'name':'Pan-STARRS z', 'aliases':["sdssz", "SDSS z", "SDSS-z", "SDSS-z'", "Sloan-z", "sloanz", "Sloan z", "Sz", "SZ", "sZ", "Z_Sloan"]},
     'y': {'name':'Pan-STARRS y', 'aliases':["sdssy", "SDSS y", "SDSS-y", "SDSS-y'", "Sloan-y", "sloany", "Sloan y", "Sy", "SY", "sY"]},
     # Gaia
     'G': {'name':'Gaia G', 'aliases':['w']},

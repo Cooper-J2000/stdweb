@@ -19,6 +19,36 @@
      document.body.appendChild(f); f.submit();
    }
 
+   // Batch delete selected files from the data browser (local files only)
+   delete_selected = function(dirpath) {
+     var selected = [];
+     $('input[name="delete_files"]:checked').each(function() { selected.push($(this).val()); });
+     if (!selected.length) return;
+     if (!confirm('删除所选 ' + selected.length + ' 个文件？\n此操作不可撤销。')) return;
+     var f = document.createElement('form');
+     f.method = 'POST';
+     f.action = dirpath;
+     var a = document.createElement('input'); a.type = 'hidden'; a.name = 'action'; a.value = 'batch_delete';
+     f.appendChild(a);
+     selected.forEach(function(v) {
+       var b = document.createElement('input'); b.type = 'hidden'; b.name = 'filenames'; b.value = v;
+       f.appendChild(b);
+     });
+     var c = document.createElement('input'); c.type = 'hidden'; c.name = 'csrfmiddlewaretoken'; c.value = '{{ csrf_token }}';
+     f.appendChild(c);
+     document.body.appendChild(f); f.submit();
+   }
+
+   check_delete_visibility = function() {
+     var count = $('input[name="delete_files"]:checked').length;
+     var btn = $('#batch_delete_btn');
+     btn.prop('disabled', count == 0);
+     if (count > 0)
+       btn.text('删除所选 (' + count + ')');
+     else
+       btn.text('删除所选');
+   }
+
    check_menu_visibility = function() {
      var hidden = true;
      var menu = $('#actions_menu');
@@ -52,6 +82,16 @@
        $('input[name="local_files"]').prop('checked', $(this).prop('checked'));
        check_menu_visibility();
      });
+   });
+
+   // Batch delete selection
+   $(function(){
+     $('input[name="delete_files"]').on('change', check_delete_visibility);
+     $('input[name="select_all_delete"]').on('change', function() {
+       $('input[name="delete_files"]').prop('checked', $(this).prop('checked'));
+       check_delete_visibility();
+     });
+     check_delete_visibility();
    });
    {% endif %}
   </script>
@@ -117,16 +157,28 @@
 
       <div class="list-group mb-4">
 
-        <div class="list-group-item d-flex bg-light">
+        <div class="list-group-item d-flex align-items-center bg-light">
           {% if not is_task_browser %}
-            <input class="form-check-input" type="checkbox" name="select_all" title="Select all"/>
+            <input class="form-check-input" type="checkbox" name="select_all" title="全选待处理"/>
           {% endif %}
-          <span class="ms-auto me-auto"><strong>文件名</strong></span>
-          <span class="pull-right me-4"><strong>大小</strong></span>
+          <span class="ms-2 me-auto">
+            <strong>文件名</strong>
+            <a href="?sort=name&amp;order=asc" class="text-decoration-none {% if sort == 'name' and order == 'asc' %}text-primary{% else %}text-muted{% endif %}" title="按文件名升序">↑</a><a href="?sort=name&amp;order=desc" class="text-decoration-none {% if sort == 'name' and order == 'desc' %}text-primary{% else %}text-muted{% endif %}" title="按文件名降序">↓</a>
+          </span>
+          <span class="me-4">
+            <strong>时间</strong>
+            <a href="?sort=time&amp;order=asc" class="text-decoration-none {% if sort == 'time' and order == 'asc' %}text-primary{% else %}text-muted{% endif %}" title="按上传时间升序">↑</a><a href="?sort=time&amp;order=desc" class="text-decoration-none {% if sort == 'time' and order == 'desc' %}text-primary{% else %}text-muted{% endif %}" title="按上传时间降序">↓</a>
+          </span>
+          <span class="me-4"><strong>大小</strong></span>
+          {% if not is_task_browser %}
+            <button type="button" id="batch_delete_btn" class="btn btn-sm btn-danger me-2" disabled
+                    onclick="delete_selected('{% url 'files' path=path %}')">删除所选</button>
+            <input class="form-check-input" type="checkbox" name="select_all_delete" title="全选删除"/>
+          {% endif %}
         </div>
 
         {% for file in files %}
-          <div class="list-group-item">
+          <div class="list-group-item d-flex align-items-center">
             {% if file.type == 'fits' and not is_task_browser %}
               <input class="form-check-input" type="checkbox" name="local_files" value="{{ file.path }}"/>
             {% else %}
@@ -145,8 +197,12 @@
               </a>
             {% endif %}
 
+            <span class="ms-auto me-4 text-muted small">
+              {% if file.time %}{{ file.time.datetime|date:"Y-m-d H:i" }}{% endif %}
+            </span>
+
             {% if file.type != 'dir' and file.type != 'up' %}
-              <span class="pull-right">{{ file.size|naturalsize }}</span>
+              <span class="me-4">{{ file.size|naturalsize }}</span>
             {% endif %}
 
             {% if not is_task_browser and file.type != 'dir' and file.type != 'up' %}
@@ -154,6 +210,7 @@
                       onclick="delete_file('{{ file.path|escapejs }}', '{{ file.name|escapejs }}', '{% url 'files' path=path %}')">
                 <i class="fa fa-trash-o"></i>
               </button>
+              <input class="form-check-input ms-2" type="checkbox" name="delete_files" value="{{ file.path }}" title="选择删除"/>
             {% endif %}
           </div>
 

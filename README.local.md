@@ -75,7 +75,13 @@ Celery 和 Django 由 **systemd 用户级服务**托管，开机自动拉起（�
    默认 `127.0.0.1,localhost`（可在 .env 用 `ALLOWED_HOSTS` 覆盖）。**不做任何外部暴露**。
 3. **Files 删除功能**：文件浏览页每个文件有删除按钮（`views.py` 的 `list_files` POST 处理 +
    `files.html`）。安全设计：软链只删链接本身（不碰目标文件）、普通文件有路径穿越防护（realpath
-   检查）、仅登录可用。
+   检查）、仅登录可用。（2026-09-04 扩展）新增**批量勾选删除**：每行末尾新增删除勾选框
+   （所有非目录文件可选，区别于仅 FITS 的"待处理"勾选框），表头"删除所选"按钮按勾选数
+   动态启用，POST `action=batch_delete` + `filenames` 列表，逐文件复用同一套删除安全检查
+   （抽出为 `views.py` 的 `try_delete_file`）；删除后重定向保留当前排序参数。
+   同次新增**列表排序**：表头"文件名"/"时间"两列各有 ↑↓ 链接（GET `sort=name|time` +
+   `order=asc|desc`，默认文件名升序，非法参数回退默认），每行显示修改时间；任务文件
+   浏览页复用同一视图，同样支持排序但不显示任何删除 UI。
 4. **首页上传选择 FITS 扩展层 (HDU)**：上传表单新增"FITS 扩展层 (HDU)"下拉
    （默认"自动（最后一个 HDU）"，可显式选 HDU 0-10）。`forms.py` 的 `UploadFileForm`
    新增 `ext` 字段；`views.py` 的 `upload_file` 按选择用 `fits.getdata/getheader`
@@ -162,7 +168,9 @@ Celery 和 Django 由 **systemd 用户级服务**托管，开机自动拉起（�
 14. **滤光片别名本地化**（2026-08-18）：`processing/constants.py` 的 `supported_filters`
     新增别名——`up`→Sloan u、`gp`/`rp`/`ip`→Pan-STARRS g/r/i、`w`→Gaia G。
     inspect 步骤从 FITS 头读到这些值时自动归一化，测光定标随之选用对应星表波段
-    （u 可用 gaiadr3syn/sdss；G 可用 gaiaedr3）。
+    （u 可用 gaiadr3syn/sdss；G 可用 gaiaedr3）。（2026-09-04 补充）再增
+    `U_Sloan`→Sloan u、`G_Sloan`→Pan-STARRS g、`R_Sloan`→Pan-STARRS r、
+    `I_Sloan`→Pan-STARRS i、`Z_Sloan`→Pan-STARRS z。
 
 其他小改动：`settings.py` 增加 LOGGING 配置（django.log 异常日志，见日志章节）。
 

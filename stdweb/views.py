@@ -149,6 +149,30 @@ def make_breadcrumb(path, base='Root', lastlink=False):
     return breadcrumb
 
 
+def try_delete_file(base, filename):
+    """Delete a single entry inside the data root.
+
+    Symlinks: only the link itself is removed, never its target.
+    Regular files must stay inside the data root (blocks '..' escapes).
+    Returns True on success.
+    """
+    filename = sanitize_path(filename)
+    target = os.path.join(base, filename)
+
+    if not filename or not os.path.lexists(target):
+        return False
+
+    if os.path.islink(target):
+        os.remove(target)
+        return True
+
+    if os.path.isfile(target) and os.path.realpath(target).startswith(os.path.realpath(base) + os.sep):
+        os.remove(target)
+        return True
+
+    return False
+
+
 @login_required
 def list_files(request, path='', base=settings.DATA_PATH):
     context = {}
@@ -157,29 +181,40 @@ def list_files(request, path='', base=settings.DATA_PATH):
 
     fullpath = os.path.join(base, path)
 
-    # Delete a file (if requested) - local files browser only
+    # Delete file(s) (if requested) - local files browser only
     if request.method == 'POST' and request.POST.get('action') == 'delete':
         filename = sanitize_path(request.POST.get('filename', ''))
-        target = os.path.join(base, filename)
 
-        ok = False
-        if filename and os.path.lexists(target):
-            if os.path.islink(target):
-                # Deleting a symlink removes only the link itself, never its target
-                os.remove(target)
-                ok = True
-            elif os.path.isfile(target) and os.path.realpath(target).startswith(os.path.realpath(base) + os.sep):
-                # Regular file must stay inside the data root (blocks '..' escapes)
-                os.remove(target)
-                ok = True
-
-        if ok:
+        if try_delete_file(base, filename):
             messages.success(request, "已删除 " + filename)
             return HttpResponseRedirect(reverse('files', kwargs={'path': os.path.dirname(filename)}))
         else:
             messages.error(request, "无法删除 " + (filename or '空文件名'))
 
         return HttpResponseRedirect(reverse('files', kwargs={'path': path}))
+
+    if request.method == 'POST' and request.POST.get('action') == 'batch_delete':
+        filenames = request.POST.getlist('filenames')
+
+        deleted = []
+        failed = []
+        for filename in filenames:
+            if try_delete_file(base, filename):
+                deleted.append(filename)
+            else:
+                failed.append(filename)
+
+        if deleted:
+            messages.success(request, f"已删除 {len(deleted)} 个文件: " + ", ".join(deleted))
+        if failed:
+            messages.error(request, f"无法删除 {len(failed)} 个文件: " + ", ".join(failed))
+        if not filenames:
+            messages.error(request, "未选择要删除的文件")
+
+        url = reverse('files', kwargs={'path': path})
+        if request.GET:
+            url += '?' + request.GET.urlencode()
+        return HttpResponseRedirect(url)
 
     context['path'] = path
     context['breadcrumb'] = make_breadcrumb(path, base="Files")
@@ -246,6 +281,14 @@ def list_files(request, path='', base=settings.DATA_PATH):
         # List files in directory
         files = []
 
+        sort = request.GET.get('sort', 'name')
+        if sort not in ('name', 'time'):
+            sort = 'name'
+
+        order = request.GET.get('order', 'asc')
+        if order not in ('asc', 'desc'):
+            order = 'asc'
+
         for entry in os.scandir(fullpath):
             # Check for broken symlinks
             if not os.path.exists(os.path.join(fullpath, entry.name)):
@@ -281,13 +324,19 @@ def list_files(request, path='', base=settings.DATA_PATH):
 
             files.append(elem)
 
-        files = sorted(files, key=lambda _: _.get('name'))
+        descending = (order == 'desc')
+        if sort == 'time':
+            files = sorted(files, key=lambda _: _.get('stat').st_mtime if _.get('stat') else 0, reverse=descending)
+        else:
+            files = sorted(files, key=lambda _: _.get('name', '').lower(), reverse=descending)
 
         if len(context['breadcrumb']) > 1:
             files = [{'path': os.path.dirname(path), 'name': '..', 'is_dir': True, 'type':'up'}] + files
 
         context['files'] = files
         context['mode'] = 'list'
+        context['sort'] = sort
+        context['order'] = order
         context['form'] = forms.UploadFileForm(filename='*', user=request.user)
 
 
