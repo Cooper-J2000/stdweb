@@ -241,7 +241,7 @@ SKYPORTAL_TOKEN = config('SKYPORTAL_TOKEN', default=None)
 SKYPORTAL_GROUP_ID = config('SKYPORTAL_GROUP_ID', default=3)
 
 # AJST catalog base URL
-AJST_BASE_URL = config('AJST_BASE_URL', default='http://localhost:5000')
+AJST_BASE_URL = config('AJST_BASE_URL', default='http://127.0.0.1:27101')
 # AJST ingest API token
 AJST_TOKEN = config('AJST_TOKEN', default=None)
 # Default telescope name for AJST uploads

@@ -767,11 +767,11 @@ All errors return JSON with an `error` or `detail` field:
 
 ```bash
 # 1. Get authentication token
-TOKEN=$(curl -s -X POST http://localhost:8000/api/auth/token/ \
+TOKEN=$(curl -s -X POST http://127.0.0.1:27102/api/auth/token/ \
   -d "username=myuser&password=mypass" | jq -r .token)
 
 # 2. Upload a FITS file and create task
-TASK=$(curl -s -X POST http://localhost:8000/api/tasks/ \
+TASK=$(curl -s -X POST http://127.0.0.1:27102/api/tasks/ \
   -H "Authorization: Token $TOKEN" \
   -F "file=@observation.fits" \
   -F 'config={"filter":"R","cat_name":"ps1"}')
@@ -780,29 +780,29 @@ TASK_ID=$(echo $TASK | jq -r .id)
 echo "Created task $TASK_ID"
 
 # 3. Run processing
-curl -X POST "http://localhost:8000/api/tasks/$TASK_ID/process/" \
+curl -X POST "http://127.0.0.1:27102/api/tasks/$TASK_ID/process/" \
   -H "Authorization: Token $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"steps":["inspect","photometry"]}'
 
 # 4. Poll for completion
 while true; do
-  CELERY_ID=$(curl -s "http://localhost:8000/api/tasks/$TASK_ID/state/" \
+  CELERY_ID=$(curl -s "http://127.0.0.1:27102/api/tasks/$TASK_ID/state/" \
     -H "Authorization: Token $TOKEN" | jq -r .celery_id)
   if [[ "$CELERY_ID" == "null" ]]; then break; fi
   sleep 5
 done
 
 # 5. List result files
-curl -s "http://localhost:8000/api/tasks/$TASK_ID/files/" \
+curl -s "http://127.0.0.1:27102/api/tasks/$TASK_ID/files/" \
   -H "Authorization: Token $TOKEN" | jq .
 
 # 6. Download detected objects catalog
-curl "http://localhost:8000/api/tasks/$TASK_ID/files/objects.vot" \
+curl "http://127.0.0.1:27102/api/tasks/$TASK_ID/files/objects.vot" \
   -H "Authorization: Token $TOKEN" -o objects.vot
 
 # 7. Get image preview
-curl "http://localhost:8000/api/tasks/$TASK_ID/preview/image.fits?width=1024" \
+curl "http://127.0.0.1:27102/api/tasks/$TASK_ID/preview/image.fits?width=1024" \
   -H "Authorization: Token $TOKEN" -o preview.jpg
 ```
 
@@ -814,7 +814,7 @@ curl "http://localhost:8000/api/tasks/$TASK_ID/preview/image.fits?width=1024" \
 import requests
 import time
 
-BASE_URL = "http://localhost:8000/api"
+BASE_URL = "http://127.0.0.1:27102/api"
 
 # 1. Authenticate and get token
 response = requests.post(f"{BASE_URL}/auth/token/", data={
@@ -991,7 +991,7 @@ class STDWebClient:
 # Usage example
 if __name__ == "__main__":
     client = STDWebClient(
-        "http://localhost:8000/api",
+        "http://127.0.0.1:27102/api",
         username="myuser",
         password="mypass"
     )

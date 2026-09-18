@@ -25,7 +25,7 @@
 |---|---|---|
 | Redis | 任务队列 broker（系统服务，仅 127.0.0.1:6379） | `sudo systemctl start/stop redis-server` |
 | Celery worker | 后台处理，6 并发（12 个 astropy worker 对 15GB 内存偏多） | systemd 用户服务 `stdweb-celery.service`（开机自启），或 `start_stdweb.sh` / `stop_stdweb.sh` |
-| Django runserver | Web 服务，仅监听 127.0.0.1:8000 | systemd 用户服务 `stdweb-django.service`（开机自启），或 `start_stdweb.sh` / `stop_stdweb.sh` |
+| Django runserver | Web 服务，仅监听 127.0.0.1:27102 | systemd 用户服务 `stdweb-django.service`（开机自启），或 `start_stdweb.sh` / `stop_stdweb.sh` |
 | conda 环境 | `stdweb`（Python 3.12.13） | 见下文 |
 
 Python 环境：`/home/ajst/miniconda3/envs/stdweb/bin/python`
@@ -184,7 +184,7 @@ Celery 和 Django 由 **systemd 用户级服务**托管，开机自动拉起（�
 /home/ajst/Astro_Software/stdweb/stop_stdweb.sh
 
 # 访问
-# 浏览器打开 http://127.0.0.1:8000
+# 浏览器打开 http://127.0.0.1:27102
 ```
 
 登录凭据：admin 账号（密码已由使用者修改；若遗忘用下面命令重置）。
