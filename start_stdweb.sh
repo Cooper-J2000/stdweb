@@ -26,15 +26,15 @@ fi
 if pgrep -f "[m]anage.py runserver" > /dev/null 2>&1; then
     echo "[OK] Django 已在运行"
 else
-    nohup "$PY" manage.py runserver 127.0.0.1:8000 --insecure >> server.log 2>&1 &
+    nohup "$PY" manage.py runserver 127.0.0.1:27102 --insecure >> server.log 2>&1 &
     echo "[OK] Django 已启动 (PID $!)"
 fi
 
 # 4. 等待就绪并验证
 for i in $(seq 1 10); do
-    if curl -s -o /dev/null http://127.0.0.1:8000/ 2>/dev/null; then
+    if curl -s -o /dev/null http://127.0.0.1:27102/ 2>/dev/null; then
         echo ""
-        echo "STDWeb 已就绪: http://127.0.0.1:8000  (仅本机可访问)"
+        echo "STDWeb 已就绪: http://127.0.0.1:27102  (仅本机可访问)"
         exit 0
     fi
     sleep 1

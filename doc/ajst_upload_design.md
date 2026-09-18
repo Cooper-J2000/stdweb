@@ -179,7 +179,7 @@ AJST_INGEST_TOKEN = os.environ.get('AJST_INGEST_TOKEN')  # 未设置则 ingest �
 ### 4.1 配置（`stdweb/settings.py`，仿 `settings.py:236-241`）
 
 ```python
-AJST_BASE_URL = config('AJST_BASE_URL', default='http://localhost:5000')
+AJST_BASE_URL = config('AJST_BASE_URL', default='http://127.0.0.1:27101')
 AJST_TOKEN = config('AJST_TOKEN', default=None)
 AJST_DEFAULT_TELESCOPE = config('AJST_DEFAULT_TELESCOPE', default='AJST')
 AJST_DEFAULT_INSTRUMENT = config('AJST_DEFAULT_INSTRUMENT', default='STDWeb')
@@ -369,7 +369,7 @@ AJST_DEFAULT_INSTRUMENT = config('AJST_DEFAULT_INSTRUMENT', default='STDWeb')
      - STDWeb：在 `.env`（或环境变量）配置 `AJST_TOKEN=<同一令牌>` 与 `AJST_BASE_URL`，为需要上传的用户授予 `stdweb.ajst_upload` 权限，重启 STDWeb 服务；
      - 之后执行 C1：用一个真实已处理任务走完 选择→勾选切换→预览编辑→上传→AJST 前端核对 的全流程，并顺带复核 C2/C3 的端到端表现。
 - v1.3（2026-08-08）：生产部署完成。
-  1. 令牌：随机生成 43 字符 token，已幂等追加至 `~/.bashrc`（`AJST_INGEST_TOKEN`）与 STDWeb `.env`（`AJST_TOKEN`，另加 `AJST_BASE_URL=http://localhost:5000`）。
+  1. 令牌：随机生成 43 字符 token，已幂等追加至 `~/.bashrc`（`AJST_INGEST_TOKEN`）与 STDWeb `.env`（`AJST_TOKEN`，另加 `AJST_BASE_URL`）。**2026-09-18 更新**：AJST 服务已由 `0.0.0.0:5000` 迁至 `127.0.0.1:27101`，`.env` 与 `settings.py` 默认值同步改为 `http://127.0.0.1:27101`。
   2. 授权：`stdweb.ajst_upload` 已授予 `admin`（拥有 `skyportal_upload` 的全部用户 + 超级用户，实际仅 admin 一人）。
   3. 服务：`systemctl --user restart ajst-catalog stdweb-django` 已执行，两个服务及 stdweb-celery 均 active。
   4. 生产冒烟测试（全部通过）：无/错 token → 401；resolve 命中真实源 EP251202a（含 t0、别名）；上传 1 个标记为 smoke test 的 r 波段点成功（inserted=1）；重复上传正确跳过（skipped_duplicates=1，幂等）；测试点已按 id 精确 DELETE 清理，生产库无残留。

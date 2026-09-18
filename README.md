@@ -133,7 +133,7 @@ STDPIPE_PS1_CACHE =
 SKYPORTAL_TOKEN = 
 
 # AJST transient catalog API (upload photometry to AJST_Transient_lc_Cata)
-AJST_BASE_URL = http://localhost:5000
+AJST_BASE_URL = http://127.0.0.1:27101
 AJST_TOKEN = 
 ```
 
