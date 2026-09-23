@@ -2,7 +2,7 @@ import os
 import logging
 
 from celery import Celery
-from celery.signals import worker_ready
+from celery.signals import worker_ready, worker_process_init
 
 # Set the default Django settings module for the 'celery' program.
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'stdweb.settings')
@@ -36,6 +36,19 @@ app.autodiscover_tasks(related_name='celery_tasks')
 
 
 logger = logging.getLogger(__name__)
+
+# 终止信号留痕（谁能给本进程发 SIGTERM/SIGINT/SIGHUP/SIGQUIT 都记下来）。
+# 本模块被 stdweb/__init__.py 导入，所以 Django 与 Celery worker 两侧都会装上（幂等）。
+from . import signal_trace          # noqa: E402
+
+signal_trace.install()
+
+
+@worker_process_init.connect
+def _unblock_signals_in_pool_child(**kwargs):
+    """prefork 子进程继承了留痕用的信号掩码，必须解除——
+    否则 worker 对子进程发的 SIGTERM 会被挂起，任务取消/超时清理就失效了。"""
+    signal_trace.unblock_for_children()
 
 
 @worker_ready.connect
