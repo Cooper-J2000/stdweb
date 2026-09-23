@@ -7,6 +7,14 @@ import sys
 def main():
     """Run administrative tasks."""
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'stdweb.settings')
+
+    # 终止信号留痕：尽量早装，连启动阶段的 SIGTERM 都能记下来（失败则静默 no-op）
+    try:
+        from stdweb import signal_trace
+        signal_trace.install()
+    except Exception:
+        pass
+
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:

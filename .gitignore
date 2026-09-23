@@ -53,6 +53,8 @@ coverage.xml
 
 # Django stuff:
 *.log
+# 终止信号留痕（运行期产物，见 stdweb/signal_trace.py 与 record_service_stop.sh）
+signal_trace.jsonl
 local_settings.py
 
 # Flask stuff:
