@@ -2,6 +2,7 @@
 from celery import shared_task, chain
 
 import os, glob, shutil
+import logging
 import signal
 import time
 
@@ -18,17 +19,59 @@ from . import processing
 from .action_logging import log_action
 
 
+logger = logging.getLogger(__name__)
+
+
 # Process group management for killing external processes
+def _is_stdweb_celery_process(pid):
+    """True only if `pid` currently belongs to one of our own Celery workers."""
+    try:
+        with open(f'/proc/{pid}/cmdline', 'rb') as fh:
+            cmdline = fh.read().replace(b'\0', b' ').decode('utf-8', 'replace')
+    except OSError:
+        return False
+    return 'celery' in cmdline and 'stdweb' in cmdline
+
+
 def kill_task_processes(task):
-    """Kill all processes associated with a task via process group."""
-    if task.celery_pid:
-        try:
+    """Kill all processes associated with a task via process group.
+
+    `celery_pid` is persisted in the database, so it can be stale (the worker was
+    restarted or the machine was rebooted mid-task) and PIDs get reused across
+    boots.  Never call os.killpg() on a pid read from the database without
+    checking first: signalling the wrong group takes down unrelated processes
+    (Redis, the web server, other services - they are all separate groups).
+    Rules:
+      * pid gone              -> nothing to do
+      * pid is not one of our Celery workers -> refuse, log, do nothing
+      * pid is its own group leader (what TaskProcessContext.__enter__() makes
+        with os.setpgrp())   -> kill that whole group (task children included)
+      * otherwise (pid is inside the worker's group) -> signal that one pid only
+    """
+    pid = task.celery_pid
+    if not pid:
+        return
+
+    if not _is_stdweb_celery_process(pid):
+        logger.warning('kill_task_processes: pid %s (task %s) is not a stdweb celery '
+                       'worker - stale pid, refusing to signal it', pid, task.id)
+        return
+
+    try:
+        pgid = os.getpgid(pid)
+    except (ProcessLookupError, PermissionError, OSError):
+        return  # stale pid - nothing to kill
+
+    try:
+        if pgid == pid:
             # Kill entire process group
-            os.killpg(os.getpgid(task.celery_pid), signal.SIGTERM)
+            os.killpg(pgid, signal.SIGTERM)
             time.sleep(0.5)
-            os.killpg(os.getpgid(task.celery_pid), signal.SIGKILL)
-        except (ProcessLookupError, PermissionError, OSError):
-            pass
+            os.killpg(pgid, signal.SIGKILL)
+        else:
+            os.kill(pid, signal.SIGTERM)
+    except (ProcessLookupError, PermissionError, OSError):
+        pass
 
 
 class TaskProcessContext:
@@ -74,9 +117,14 @@ class TaskProcessContext:
     def _sigterm_handler(self, signum, frame):
         """Handle SIGTERM - clean up and kill process group."""
         self._cleanup_pid()
+        # __enter__ did os.setpgrp() so that this task's whole process tree can be
+        # killed together.  Only kill a group we actually lead: if setpgrp() did
+        # not take effect our group is the Celery worker's, and killing it would
+        # take the whole worker down with this child.
         try:
-            os.killpg(os.getpgrp(), signal.SIGKILL)
-        except:
+            if os.getpgrp() == os.getpid():
+                os.killpg(os.getpgrp(), signal.SIGKILL)
+        except Exception:
             pass
         raise SystemExit(1)
 
