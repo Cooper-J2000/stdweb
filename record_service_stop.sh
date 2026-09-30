@@ -9,7 +9,7 @@
 # systemd 注入的环境变量：SERVICE_RESULT / EXIT_CODE / EXIT_STATUS / MAINPID / INVOCATION_ID
 # 用法：record_service_stop.sh <unit-name>
 
-TRACE="${STDWEB_SIGNAL_TRACE:-/home/ajst/Astro_Software/stdweb/signal_trace.jsonl}"
+TRACE="${STDWEB_SIGNAL_TRACE:-$(cd "$(dirname "$0")" && pwd)/signal_trace.jsonl}"
 UNIT="${1:-unknown}"
 
 exec /usr/bin/python3 - "$TRACE" "$UNIT" <<'PY'

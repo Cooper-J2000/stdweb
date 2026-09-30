@@ -3,8 +3,8 @@
 - 版本：v1.0（2026-08-08）
 - 状态：已完成（A/B/C 三阶段及部署、实测全部通过，文档归档）
 - 涉及项目：
-  - 上传方：`/home/ajst/Astro_Software/stdweb`（Django + DRF + Celery）
-  - 接收方：`/home/ajst/Astro_Catalog/AJST_Transient_lc_Cata`（Flask + SQLAlchemy + PostgreSQL）
+  - 上传方：`~/Astro_Software/stdweb`（Django + DRF + Celery）
+  - 接收方：`~/Astro_Catalog/AJST_Transient_lc_Cata`（Flask + SQLAlchemy + PostgreSQL）
 
 > **总原则：安全稳妥。**
 > - 不改动两个项目现有功能的任何行为；所有改动均为新增文件或新增分支代码。
