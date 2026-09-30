@@ -46,7 +46,7 @@ Python 环境：`~/miniconda3/envs/stdweb/bin/python`
 ## 开机自启动
 
 Celery 和 Django 由 **systemd 用户级服务**托管，开机自动拉起（无需登录桌面，
-用户 `ajst` 已开启 linger；Redis 本身已是 enabled 的系统服务）：
+当前用户已开启 linger（`loginctl enable-linger $USER`）；Redis 本身已是 enabled 的系统服务）：
 
 - 单元文件：`~/.config/systemd/user/stdweb-celery.service`、`~/.config/systemd/user/stdweb-django.service`
   （日志分别写入项目根目录 `celery.log` / `server.log`）
