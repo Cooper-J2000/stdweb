@@ -4,6 +4,9 @@
 代码位于 ~/Astro_Software/stdweb，所有本地改动提交在 `local-zh` 分支
 （master 保持与上游 https://github.com/karpov-sv/stdweb 一致）。
 
+2026-11-20 已同步上游 `86a1f33`，STDPipe 同步至 0.5.0（上游 `58e8361`）。
+所有个性化改动只推送到 `Cooper-J2000` 的个人 fork，不向上游提交 PR。
+
 > 交接提示：接手本机 STDWeb 运维，请先通读本文档；界面操作以本地化改动清单为准，
 > 与上游英文 README.md 的描述有出入时以本文档为准。
 
@@ -94,7 +97,7 @@ Celery 和 Django 由 **systemd 用户级服务**托管，开机自动拉起（�
    （`views.py` 的 `upload_data` 视图 + `urls.py` 注册 + `files.html` `multiple` 属性）。
    文件存入 DATA_PATH 但不创建任务；同名文件跳过并列出；文件名经 `os.path.basename` 净化防穿越。
 6. **首页缓存管理面板**：上传表单下方"缓存管理"卡片（`views.py` 的 `get_cache_entries` +
-   `clear_cache` + `index.html`）。按巡天逐项列出缓存目录（ps1/ls/ls11/lsdr11 及各 HiPS
+   `clear_cache` + `index.html`）。按巡天逐项列出缓存目录（ps1/旧 ls/ls11/lsdr11 及历史 HiPS
    巡天，均为 ps1_cache/ 下的子目录）及 astropy 下载缓存、astroquery 查询缓存，
    每项显示当前大小并可单独清除（POST `key` 白名单校验）。登录保护。
    **注意**：首页 '/' 实际由 `upload_file` 视图渲染（不是 index 视图），cache_entries 需两处提供。
@@ -129,41 +132,32 @@ Celery 和 Django 由 **systemd 用户级服务**托管，开机自动拉起（�
     - "模板相减"的"HOTPANTS 附加参数"默认 `{"ko": 2, "bgo": 2}`（forms.py initial +
       inspect.py 默认同步）。
     - 注意：新默认值只对**新任务**生效；旧任务 config 已存的值会以 `initial=task.config` 覆盖显示。
-11. **新增星表与模板支持**（2026-08-15）：
+11. **新增星表与模板支持**（2026-08-15；2026-11-20 跟进上游）：
     - "测光与天体测量"参考星表新增 **Pan-STARRS DR2**（`ps1dr2`）和 **Legacy Survey DR11**
-      （`lsdr11`）；"模板相减"模板新增 **Legacy Survey DR11**（`ls11`）。
-    - stdweb 侧：`processing/constants.py` 的 `supported_catalogs`/`supported_templates` 各加条目
-      （表单下拉自动生效）；`processing/photometry.py` 对 `lsdr11` 改调
-      `stdpipe.catalogs.get_cat_lsdr11()`；`processing/subtraction.py` 模板分支纳入 `ls11`
-      （maskbits 位定义 DR11 与 DR10 相同），且 `ls11` 模板缓存用 `ps1_cache/ls11/` 子目录
-      （DR11 砖文件名与 DR10 相同，防止串缓存）。
-    - stdpipe 侧（local-fixes 分支）：`catalogs.py` 加 `ps1dr2`（指向 Vizier `II/389/ps1_dr2`；
-      注意 `II/349` 是 DR1、`II/389` 才是 DR2，原 `ps1` 条目未动）和 `get_cat_lsdr11()`（从 NERSC 逐砖下载
-      `tractor-<brick>.fits`，流量转星等 `mag=22.5-2.5log10(flux)`，复用 PS1 换算增广 BVRI）；
-      `templates.py` 的 `find_skycells`/`get_skycells` 支持 `survey='ls11'`（dr11/south、
-      dr11/north coadd）；新增数据文件 `stdpipe/data/legacysurvey_dr11_bricks.fits.gz`
-      （由 `data/legacysurvey_dr11.py` 一次性生成）。
+      （`lsdr11`），这两个星表仍是本地补丁。上游 STDPipe 0.5.0 已将 `survey='ls'` 模板
+      切换为 DR11，因此原来的独立 `ls11` 模板选项已移除。
+    - stdweb 侧：`processing/constants.py` 保留两个本地星表条目；`processing/photometry.py`
+      对 `lsdr11` 调用 `stdpipe.catalogs.get_cat_lsdr11()`。模板统一下拉选项 `ls` 使用上游
+      DR11 实现，但缓存仍写入 `ps1_cache/ls11/`，防止与旧 DR10 砖同名串用。
+    - stdpipe 侧（local-fixes 分支）：`catalogs.py` 保留 `ps1dr2`（Vizier `II/389/ps1_dr2`）
+      和 `get_cat_lsdr11()`（从 NERSC 逐砖下载 `tractor-<brick>.fits`，流量转星等并增广
+      BVRI）；对应 DR11 星表砖索引数据仍随分支发布。模板代码采用上游版本。
     - 注意：DR11 north（BASS/MzLS）无 i 波段（其 tractor 砖表**完全没有 flux_i 列**，
       读取时自动补零 → imag 为 NaN，2026-08-15 修复此导致的 KeyError）；砖选择除球面粗选外
       再按 0.25°×0.25° 砖盒与视场圆的实际重叠过滤，避免下载不搭界的角部砖；
       LS 星表流量已做银河消光修正，与 PS1 等未消光星表混合时定零可能有微小系统差；
       `lsdr11` 星表按砖缓存于 `STDPIPE_PS1_CACHE/lsdr11/`（首页缓存管理面板可单独清理）。
-12. **缓存机制改造**（2026-08-18）：
-    - **按巡天分目录**：`STDPIPE_PS1_CACHE` 仍为根目录，其下每个巡天一个子目录
-      （`ps1/`、`ls/`、`ls11/`、`lsdr11/` 星表，以及 HiPS 巡天 `skymapper/`、`des/`、
-      `decaps/`、`ztf/`、`2mass/`）。`processing/subtraction.py` 按模板名拼接子目录。
-      原根目录下平铺的 PS1 skycell 已迁入 `ps1/`。
-    - **HiPS 模板本地缓存**（stdpipe `templates.py`）：`get_hips_image` 新增 `_cachedir`
-      参数。请求被规范化为网格对齐、加边填充的 tile（中心按半视场间距对齐天区网格、
-      尺寸补足，文件名含巡天+尺寸+量化中心+CD矩阵哈希），缓存命中后经
-      `reproject_lanczos` 重投影到任务精确网格；asinh 线性化在存盘前完成。
-      upscale 请求不走缓存。
-    - **flock 进程间锁**（stdpipe `utils.file_lock`）：skycell、HiPS tile、LS DR11
-      星表砖三处下载均先抢独占锁并锁内二次检查，杜绝多 worker 并发重复下载；
-      锁文件遗留（空文件无害），崩溃自动释放。
+12. **缓存机制改造**（2026-08-18；2026-11-20 精简）：
+    - **按巡天分目录**：PS1 模板使用 `STDPIPE_PS1_CACHE/ps1/`，Legacy Survey DR11
+      模板使用 `ls11/`，DR11 星表使用 `lsdr11/`。旧 `ls/` 和历史 HiPS 目录只保留给
+      缓存面板清理，不再写入新 HiPS tile。
+    - **HiPS 二次重投影缓存已退役**：本地曾将网格对齐 tile 缓存后用 Lanczos 重投影，
+      但这会再次重采样并改变 PSF 和噪声相关性。现采用上游策略，全幅相减 HiPS 请求使用
+      `cache=False`，小 cutout 仍可使用上游普通缓存。
+    - **flock 进程间锁**：skycell 和 LS DR11 星表砖下载先抢独占锁并锁内二次检查，
+      杜绝多 worker 并发重复下载；锁文件遗留（空文件无害），崩溃自动释放。
     - **astropy 下载缓存不再增长**：`fits_open_remote` 默认 `cache=False`
-      （管线有自己的文件缓存，astropy 的 URL 缓存永不过期只会膨胀）；
-      HiPS 下载同样 `cache=False`。已有的 2.4GB astropy 下载缓存已清空。
+      （管线有自己的文件缓存，astropy 的 URL 缓存永不过期只会膨胀）。
 13. **滤光片别名本地化**（2026-08-18）：`processing/constants.py` 的 `supported_filters`
     新增别名——`up`→Sloan u、`gp`/`rp`/`ip`→Pan-STARRS g/r/i、`w`→Gaia G。
     inspect 步骤从 FITS 头读到这些值时自动归一化，测光定标随之选用对应星表波段
@@ -246,8 +240,9 @@ git merge master
 - **上游若改了模板/表单/视图**：重新应用汉化和功能 patch（对照[本地化改动](#本地化改动相对上游共-13-项)清单逐项检查）
 - 模板/代码改动由 runserver autoreload 自动生效；celery 需重启才加载新代码
 
-stdpipe 仓库同样维护在 `local-fixes` 分支（numpy 2.x 修复），更新方式相同：
-`git checkout master && git pull && git checkout local-fixes && git merge master`。
+stdpipe 仓库同样维护在 `local-fixes` 分支（`DATE-MID`、PS1 DR2、LS DR11 星表等本地改动），
+更新方式相同：`git checkout master && git pull && git checkout local-fixes && git merge master`。
+升级后运行两个项目的测试，并且只推送 `fork`/`origin` 指向的个人 fork，不向上游创建 PR。
 
 ## 环境重装
 

@@ -44,9 +44,19 @@ Returns the list of tasks the current user can access: their own tasks plus any
 tasks shared with a group they belong to (staff users see all tasks).
 
 **Query Parameters (all optional):**
-- `query` - Free-text search; every whitespace-separated token must match the
-  original filename, title, owner username/first/last name, or a shared group
-  name (case-insensitive substring match, same as the web UI task list)
+- `query` - Search string, handled the same way as in the web UI task list:
+  - `key<op>value` terms filter by task config keywords, with `<op>` one of
+    `=`, `!=`, `<`, `<=`, `>`, `>=`, and value either a single word or a quoted
+    string (e.g. `filter=R gain>=1.5 target="SN 2024abc"`). Unquoted values are
+    typed as booleans (`true`/`false`) or numbers where possible, quoted ones are
+    always strings. `=`/`!=` match strings case-insensitively; range comparisons
+    only match values of the same type (numbers numerically, strings
+    lexicographically). All criteria require the key to be present.
+  - The rest is either a coordinate query (`RA Dec [radius]` in decimal degrees or
+    sexagesimal) selecting tasks whose field covers the point, or lies within the
+    radius from it - or a free-text search, where every whitespace-separated
+    token must match the original filename, title, owner username/first/last
+    name, or a shared group name (case-insensitive substring match)
 - `state` - Filter by exact task state (e.g. `photometry_done`)
 - `user` - Filter by exact owner username
 - `limit` / `offset` - Paginate the results (see below)
@@ -403,6 +413,52 @@ POST /api/tasks/{id}/destripe/
 ```
 
 Options: `horizontal`, `vertical`, `both`
+
+#### Upload Photometry to SkyPortal
+```
+POST /api/tasks/{id}/skyportal/
+```
+
+Push the task's primary-target forced-photometry result (`target.vot` /
+`sub_target.vot`, written by the `photometry`/`subtraction` steps) to a
+SkyPortal source. Requires the `stdweb.skyportal_upload` permission.
+
+**Request:**
+```json
+{
+  "source_id": "ZTF21aaqjmps",
+  "instrument_name": "TAROT-TCA",
+  "types": "best",
+  "limit_only": false,
+  "ra": 194.5,
+  "dec": 12.3
+}
+```
+- `source_id`, `instrument_name`: required.
+- `types`: `best` (template-subtracted if available; default), `direct`, or `subtracted`.
+- `limit_only`: upload only the limiting magnitude, even if a detection was measured (default `false`).
+- `ra`, `dec`: optional, attached to the photometry point for provenance.
+
+**Response:**
+```json
+{
+  "status": "success",
+  "skyportal_photometry_ids": [456],
+  "mjd": 60310.5,
+  "filter": "sdssr",
+  "magsys": "ab",
+  "mag": 19.8,
+  "magerr": 0.12,
+  "limiting_mag": 21.5,
+  "is_diff": false
+}
+```
+
+Returns `400` if the instrument name doesn't resolve to a SkyPortal
+instrument, or if the task has no usable target measurement (e.g. photometry
+hasn't run yet, or `types` is `subtracted` and no template-subtracted
+measurement exists). Returns `502` if SkyPortal is unreachable or rejects the
+upload (e.g. unknown `source_id`).
 
 ---
 

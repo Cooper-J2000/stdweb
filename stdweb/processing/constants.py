@@ -81,9 +81,10 @@ supported_catalogs_transients = {
 
 supported_templates = {
     'custom': {'name': 'Custom template'},
-    'ps1': {'name': 'Pan-STARRS DR2', 'filters': {'g', 'r', 'i', 'z'}},
-    'ls': {'name': 'Legacy Survey DR10', 'filters': {'g', 'r', 'i', 'z'}},
-    'ls11': {'name': 'Legacy Survey DR11', 'filters': {'g', 'r', 'i', 'z'}},
+    # `common_zp` marks the surveys whose bands are on a common photometric scale, so
+    # that tabulated combination coefficients may be applied to their pixel values
+    'ps1': {'name': 'Pan-STARRS DR2', 'filters': {'g', 'r', 'i', 'z'}, 'common_zp': True},
+    'ls': {'name': 'Legacy Survey DR11', 'filters': {'g', 'r', 'i', 'z'}, 'common_zp': True},
     'skymapper': {'name': 'SkyMapper DR4 (HiPS)', 'filters': {
         'u': 'CDS/P/skymapper-U', # DR1 fallback
         'g': 'CDS/P/Skymapper/DR4/g',
@@ -141,6 +142,26 @@ filter_mappings = {
 }
 
 
+# Image filters that fall between two template bands, and thus may be approximated by
+# their linear combination, `T = T1 + coeff*T2`. Such a synthetic band cancels most of
+# the color dependence the subtraction residuals have when a single, spectrally
+# mismatched template band is used.
+# The coefficients are the fallbacks used when they may not be fitted on the actual
+# images, and correspond to the pure filters. They are the ones nulling the color trend
+# of the stellar fluxes in Gaia DR3 synthetic photometry - for V it leaves 1.3% of
+# scatter with no trend, against 9.5% and 0.40 per mag of (g-r) for the g band alone;
+# for R, 0.40% against 2.2% and 0.23; for I, 0.25% against 2.1% and 0.42.
+# They are close to `a/((1 - a)*F2/F1)`, the tangent to the `m = m1 - a*(m1 - m2)` color
+# transform at the typical color of the field, which is 0.59 for V.
+# The bands bluer than g (U, u, B) would need a negative coefficient, i.e. an
+# extrapolation outside the pair, and are thus not listed here.
+filter_combinations = {
+    'V': ('g', 'r', 0.47),
+    'R': ('r', 'i', 0.23),
+    'I': ('i', 'z', 0.77),
+}
+
+
 # Conversion to AB mags, from https://www.astronomy.ohio-state.edu/martini.10/usefuldata.html
 filter_ab_offset = {
     'U': 0.79,
@@ -165,7 +186,7 @@ filter_ab_offset = {
 
 # Object flags set by SExtractor and STDPipe during the photometry, and by the
 # pre-filtering step. Note that 0x800 is also used by STDPipe optimal extraction to
-# report a failure, so it is only unambiguous when optimal extraction is disabled.
+# report a failure, so it is only unambiguous with plain aperture photometry.
 object_flags = {
     0x0001: 'bad pixels',
     0x0002: 'deblended',
@@ -207,13 +228,14 @@ files_inspect = [
 
 files_photometry = [
     'photometry.log',
-    'objects.png', 'fwhm.png',
+    'objects.png', 'fwhm.png', 'profile.png',
     'segmentation.fits',
     'image_bg.fits', 'image_rms.fits',
     'photometry.png', 'photometry_unmasked.png',
     'photometry_zeropoint.png', 'photometry_model.png',
     'photometry_residuals.png', 'astrometry_dist.png',
     'photometry.pickle',
+    'psf.pickle', 'psf.png', 'psf_grid.png', 'psf_residuals.png',
     'objects.parquet', 'cat.parquet',
     'limit_hist.png', 'limit_sn.png',
     'target.vot', 'target.cutout', 'targets'
@@ -231,6 +253,7 @@ files_subtraction = [
     'sub_diff.fits', 'sub_sdiff.fits', 'sub_conv.fits', 'sub_ediff.fits',
     'sub_scorr.fits', 'sub_fpsf.fits', 'sub_fpsferr.fits',
     'sub_target.vot', 'sub_target.cutout',
+    'sub_profile.png', 'sub_target_profile.png', 'sub_photometry.png',
     'candidates', 'candidates.vot', 'candidates.reg'
 ]
 

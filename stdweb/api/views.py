@@ -6,6 +6,7 @@ import os
 import io
 import json
 import shutil
+import requests
 from datetime import datetime
 
 from django.conf import settings
@@ -19,7 +20,6 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.response import Response
 
-from django.db.models import Q
 
 from stdweb.models import Task, Preset
 from stdweb import celery_tasks
@@ -34,12 +34,15 @@ from stdweb.processing import (
     preprocess_image,
 )
 from stdweb.views_celery import revoke_task_chain, find_task_by_chain_id
+from stdweb import views_skyportal
+from stdweb.views_tasks import filter_tasks_by_query
 
 from .serializers import (
     TaskSerializer,
     TaskCreateSerializer,
     TaskListSerializer,
     TaskStateSerializer,
+    SkyPortalUploadSerializer,
     PresetSerializer,
     CropRequestSerializer,
     DestripeRequestSerializer,
@@ -197,20 +200,8 @@ def task_list(request):
     if request.method == 'GET':
         tasks = Task.accessible_to(request.user).order_by('-created')
 
-        # Free-text search over the same fields as the web UI task list
-        query = request.query_params.get('query')
-        if query:
-            for token in query.split():
-                tasks = tasks.filter(
-                    Q(original_name__icontains=token) |
-                    Q(title__icontains=token) |
-                    Q(user__username__icontains=token) |
-                    Q(user__first_name__icontains=token) |
-                    Q(user__last_name__icontains=token) |
-                    Q(groups__name__icontains=token)
-                )
-            # M2M join can yield duplicate rows
-            tasks = tasks.distinct()
+        # Same query handling as the web UI task list
+        tasks = filter_tasks_by_query(tasks, request.query_params.get('query'))
 
         state = request.query_params.get('state')
         if state:
@@ -490,6 +481,78 @@ def task_destripe(request, pk):
         verbose=False,
     )
     return Response({'id': task.id, 'status': 'destriped'})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def task_skyportal_upload(request, pk):
+    """Upload primary-target forced-photometry result.
+    Requires source_id and instrument_name."""
+    task = get_object_or_404(Task, pk=pk)
+
+    if not check_task_permission(request, task):
+        return Response({'error': 'Permission denied'}, status=403)
+
+    if not request.user.has_perm('stdweb.skyportal_upload'):
+        return Response({'error': 'Permission denied'}, status=403)
+
+    if not settings.SKYPORTAL_TOKEN:
+        return Response({'error': 'SKYPORTAL_TOKEN is not configured on this STDWeb instance'}, status=400)
+
+    serializer = SkyPortalUploadSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=400)
+    data = serializer.validated_data
+
+    try:
+        instrument_id = views_skyportal.skyportal_get_instrument_id_by_name(data['instrument_name'])
+    except (requests.RequestException, ValueError) as e:
+        return Response({'error': f'Cannot query SkyPortal instruments: {e}'}, status=502)
+    if instrument_id is None:
+        return Response({'error': f"No SkyPortal instrument named \"{data['instrument_name']}\""}, status=400)
+
+    try:
+        phot = views_skyportal.skyportal_prepare_photometry(
+            task, types=data['types'], limit_only=data['limit_only'],
+        )
+    except RuntimeError as e:
+        return Response({'error': str(e)}, status=400)
+
+    try:
+        res = views_skyportal.skyportal_upload_photometry(
+            data['source_id'],
+            instrument=instrument_id,
+            mjd=phot['mjd'],
+            mag=phot['mag'],
+            magerr=phot['magerr'],
+            limit=phot['limit'],
+            filter=phot['filter'],
+            magsys=phot['magsys'],
+            ra=data['ra'],
+            dec=data['dec'],
+            origin=f'stdweb:{task.id}',
+            altdata={'stdweb_task_id': task.id},
+        )
+    except (requests.RequestException, ValueError) as e:
+        return Response({'error': f'Cannot upload to SkyPortal: {e}'}, status=502)
+
+    if res.get('status') != 'success':
+        return Response({'error': res.get('message', 'Unknown SkyPortal error')}, status=502)
+
+    log_action('task_skyportal_upload', task=task, request=request,
+               details={'source_id': data['source_id'], 'instrument_name': data['instrument_name']})
+
+    return Response({
+        'status': 'success',
+        'skyportal_photometry_ids': res.get('data', {}).get('ids', []),
+        'mjd': phot['mjd'],
+        'filter': phot['filter'],
+        'magsys': phot['magsys'],
+        'mag': phot['mag'],
+        'magerr': phot['magerr'],
+        'limiting_mag': phot['limit'],
+        'is_diff': phot['is_diff'],
+    })
 
 
 # =============================================================================

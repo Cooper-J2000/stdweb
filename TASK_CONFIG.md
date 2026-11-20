@@ -25,7 +25,7 @@ Parameters used during the initial image inspection stage (`inspect_image()`).
 |-----------|------|---------|-------------|
 | `target` | str | None | Target name(s) or coordinates. Supports multiple newline-separated targets. Resolved via Sesame/Simbad. |
 | `time` | str | Auto | Observation time in ISO format. Auto-detected from FITS header (`DATE-OBS`, `MJD-OBS`, etc.). |
-| `gain` | float | Auto | Detector gain in e-/ADU. Auto-detected from FITS header (`GAIN`, `EGAIN`). |
+| `gain` | float | Auto | Detector gain in e-/ADU. Auto-detected from FITS header (`GAIN`, `EGAIN`). For images with amplified photon noise (EMCCD) the effective gain, much smaller than 1, is estimated at inspection from the skewness of the sky noise, 1.5/(skewness * rms), and replaces the header one if it is more than 5 times smaller. |
 | `saturation` | float | Auto | Saturation level in ADU. Estimated from image if not provided. |
 | `filter` | str | Auto | Photometric filter name. Auto-detected and normalized to canonical names (U, B, V, R, I, u, g, r, i, z, etc.). |
 
@@ -34,6 +34,7 @@ Parameters used during the initial image inspection stage (`inspect_image()`).
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `mask_cosmics` | bool | True | Enable cosmic ray detection and masking using astroscrappy. |
+| `cosmics_sigclip` | float | 4.5 | Detection threshold of astroscrappy cosmics masking, in sigma. |
 
 ### Catalog Selection
 
@@ -46,7 +47,7 @@ Parameters used during the initial image inspection stage (`inspect_image()`).
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `template` | str | Auto | Template image source. Auto-suggested based on sky position. Options: `ps1`, `ls`, `ls11`, `skymapper`, `des`, `decaps`, `ztf`, `2mass`, `custom`. |
+| `template` | str | Auto | Template image source. Auto-suggested based on sky position. Options: `ps1`, `ls`, `skymapper`, `des`, `decaps`, `ztf`, `2mass`, `custom`. |
 
 ---
 
@@ -62,18 +63,27 @@ Parameters used during photometric calibration (`photometry_image()`).
 | `initial_aper` | float | 3 | Initial aperture diameter for SExtractor (pixels). |
 | `initial_r0` | float | 0 | Gaussian smoothing kernel radius for detection (pixels). 0 = no smoothing. |
 | `minarea` | int | 5 | Minimum connected pixel area for detection. |
-| `bg_size` | int | Auto | Background mesh size for SExtractor (pixels). Auto-calculated if not set. |
+| `adaptive_detection` | bool | False | Re-run detection with smoothing kernel matched to the measured FWHM and threshold set to `sn` in units of filtered image noise. Improves detection of faint objects with wide PSF. The same detection parameters are used for transient detection in the difference image, as its pre-filtering classifier is trained on the photometry detections. |
+| `bg_size` | int | Auto | Background mesh size for SExtractor (pixels). If not set, guessed at inspection as the largest mesh, doubling from 64 pixels up to quarter of the image size, that still follows the large-scale sky structure (vignetting etc), i.e. doubling it changes the background by less than max(1.25 x its noise, 0.03) of the sky rms, with the noise of the mesh measured from the differences of adjacent meshes, so that correlated noise is not mistaken for the structure. If the structure is dominated by extended emission already at 64 pixels, min(256, quarter of the image size) is used. |
 | `fwhm_override` | float | None | Override auto-measured FWHM with fixed value (pixels). |
-| `prefilter_detections` | bool | True | Apply isolation forest outlier detection to filter spurious detections. |
+| `prefilter_detections` | bool | True | Apply isolation forest outlier detection to filter spurious detections. If not set, disabled at inspection together with guessing `mean` for `bg_estimator`, as the shapes of fainter stars are then biased by skewed sky noise and they would be rejected as outliers. |
 
-### Aperture Photometry
+### Object Photometry
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `rel_aper` | float | 1.0 | Photometry aperture radius in FWHM units. |
 | `rel_bg1` | float | 5.0 | Inner background annulus radius in FWHM units. |
 | `rel_bg2` | float | 7.0 | Outer background annulus radius in FWHM units. |
-| `optimal_extraction` | bool | False | Use optimal (PSF-weighted) extraction instead of plain aperture sums, improving S/N for faint sources. |
+| `bg_estimator` | str | `mode` | Local background estimator in the annulus: `mode` is robust to contamination by neighbours, but biased low for skewed noise of low sky levels (up to half an electron per pixel, multiplied by the aperture area), making faint objects too bright. `mean` uses 5-sigma clipped mean that is unbiased for such noise, and is better suited for uncrowded low-flux images with large apertures. `median` is in between, with about three times smaller bias than `mode`. If not set, guessed at inspection: `mean` if the sky noise itself is skewed (its skewness decreases as 1/sqrt(n) when n pixels are binned, unlike the one of the sources) enough to bias 100-pixel aperture with `mode` by more than 0.5 sigma, `mode` otherwise. |
+| `photometry_method` | str | `aperture` | Photometry method used for all measurements calibrated with the photometric solution - objects and targets in the image, and targets and candidates in the difference image: `aperture` for plain aperture sums, `optimal` for optimal (PSF-weighted) extraction with Gaussian PSF, improving S/N for faint sources, or `psf` for PSF fitting at fixed positions with the empirical PSF model built from the image stars. |
+| `psf_degree` | int | None | Polynomial degree of the spatial variations of the PSF model for `psf` photometry method. 0 = constant PSF. None or `auto` = selected automatically, up to 3, by spatial cross-validation. Explicit value is reduced if there are fewer than 5 stars per polynomial coefficient. |
+| `psf_fit_radius` | float | None | Radius, in FWHM units, of the region used for PSF fitting. None = same as `rel_aper`. |
+| `psf_group_radius` | float | None | Radius, in FWHM units, within which the objects are fitted simultaneously with PSF photometry. None = twice the fit radius, 0 = no grouping. |
+| `psf_max_stars` | int | None | Maximal number of stars, spread uniformly over the image, used to build the PSF model. None = up to 25 per cell of 6x6 grid. |
+| `psf_fit_neighbors` | bool | False | Fit the detected objects around the targets simultaneously with them in `psf` photometry, so that their flux does not leak into the targets. The objects closer than half FWHM to the targets are considered to be the targets themselves. |
+| `psf_size` | int | None | Size of the PSF model stamp in pixels. None = selected automatically from the extent of stellar profile, between max(15, 5*FWHM) and 10*FWHM. |
+| `optimal_extraction` | bool | False | Deprecated, equivalent to `photometry_method` = `optimal` when the latter is not set. |
 
 ### Photometric Calibration
 
@@ -121,6 +131,7 @@ Parameters used during photometric calibration (`photometry_image()`).
 |-----------|------|---------|-------------|
 | `diagnose_color` | bool | False | Run photometric diagnostics for all available filter combinations. |
 | `inspect_bg` | bool | False | Write background and RMS maps to FITS files. |
+| `inspect_profile` | bool | False | Plot mean radial profile of the stars, and unfiltered radial profiles of the targets, with FWHM, aperture and background annulus. Also plots the target in the difference image, and the subtraction residuals at stellar positions. |
 
 ---
 
@@ -157,7 +168,8 @@ Parameters for image subtraction and difference imaging (`subtract_image()`).
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `template` | str | 'ps1' | Template source: `ps1`, `ls` (Legacy Survey DR10/DR9), `ls11` (Legacy Survey DR11), `skymapper`, `des`, `decaps`, `ztf`, `custom`. |
+| `template` | str | 'ps1' | Template source: `ps1`, `ls` (Legacy Survey DR11), `skymapper`, `des`, `decaps`, `ztf`, `custom`. |
+| `template_combine` | bool | true | Synthesize the template band closer to the image filter by linearly combining two template filters. Applies to `V` (`g`+`r`), `R` (`r`+`i`) and `I` (`i`+`z`) images only, and doubles the template downloads. |
 | `template_fwhm_override` | float | None | Override template FWHM measurement (pixels). |
 | `custom_template_gain` | float | 10000 | Assumed gain for custom template images (e-/ADU). |
 | `custom_template_saturation` | float | None | Saturation level for custom template (ADU). |
@@ -184,6 +196,7 @@ Used when `subtraction_method` is `hotpants`.
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `hotpants_extra` | dict | `{'ko':0, 'bgo':0}` | Extra options passed straight through to the HOTPANTS command line (see below). |
+| `hotpants_check_stamps` | bool | true | After the run, compare the kernel sum with the median image to template flux ratio of isolated stars, and if they disagree, mask the stamp biasing it (typically a star saturated or non-linear in the template, e.g. in Pan-STARRS) in the template and re-run HOTPANTS, up to 3 times. Masked regions are invalid in the difference image. |
 
 `hotpants_extra` is a JSON object whose keys are HOTPANTS option names **without
 the leading dash** and whose values are the option arguments; bare flags take the
@@ -276,6 +289,7 @@ These parameters are computed during processing and stored in the config for use
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `fwhm` | float | Measured PSF FWHM (pixels). |
+| `noise_excess` | float | Ratio of the actual noise of the photometry (measured in empty-sky apertures) to the one predicted from the background RMS, e.g. due to correlated noise of resampled images. Background noise of all photometry is scaled by it. Never below 0.9 (slightly below 1 is normal for aperture photometry). |
 | `pixscale` | float | Pixel scale (degrees/pixel). |
 | `field_ra` | float | Field center RA (degrees). |
 | `field_dec` | float | Field center Dec (degrees). |
@@ -336,8 +350,7 @@ band that best matches the instrumental passband (smallest color term).
 | Template | Coverage | Filters | Resolution |
 |----------|----------|---------|------------|
 | `ps1` | Dec > -30° | grizy | 0.25"/pix |
-| `ls` | Dec > -20° | grz | 0.26"/pix |
-| `ls11` | LS DR11 footprint | griz (north: grz) | 0.26"/pix |
+| `ls` | LS DR11 footprint | griz (north: grz) | 0.26"/pix |
 | `skymapper` | Dec < +5° | uvgriz | 0.5"/pix |
 | `des` | Limited | grizY | 0.26"/pix |
 | `decaps` | Galactic plane | grizY | 0.26"/pix |

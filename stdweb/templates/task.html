@@ -15,10 +15,112 @@
   <script src="{% static 'queue.js' %}"></script>
 
   <script language="javascript">
+   // Where the page goes after a reload made while a chain runs: back to the
+   // section that was being read, its heading where it stood in the window.
+   // The browser's own restoring keeps the distance from the top of the page,
+   // and the sections above have often grown by then with what the run
+   // produced. Only that once - a reload by hand is left to the browser.
+   var scroll_key = 'stdweb-scroll-to-{{ task.id }}';
+
+   // Noted with the time, as a form whose answer goes elsewhere - deleting
+   // the task - would otherwise leave it to surprise the next visit
+   var position_saved = false;
+   var save_position = function(heading){
+     try {
+       sessionStorage.setItem(scroll_key, JSON.stringify({
+         id: heading.id, offset: heading.getBoundingClientRect().top, time: Date.now()}));
+       // Or the browser would put the page back where it was, after us
+       history.scrollRestoration = 'manual';
+       position_saved = true;
+     } catch(e) {}
+   };
+
+   // And for any other way of leaving - a reload by hand above all - the
+   // browser's own restoring, which a page restored by us had to turn off.
+   // Here rather than on load, which may be held off for long by images.
+   window.addEventListener('pagehide', function(){
+     if(!position_saved)
+       history.scrollRestoration = 'auto';
+   });
+
+   // A section's form, sent, comes back as the page from the top - so it
+   // returns to the section it was sent from, as it stood. The section is the
+   // last one whose heading comes before the form.
+   document.addEventListener('submit', function(event){
+     var form = event.target;
+
+     if(event.defaultPrevented || (form.target && form.target !== '_self'))
+       return;
+
+     var heading = null;
+     document.querySelectorAll('[data-toc][id]').forEach(function(candidate){
+       if(candidate.compareDocumentPosition(form) & Node.DOCUMENT_POSITION_FOLLOWING)
+         heading = candidate;
+     });
+
+     if(heading)
+       save_position(heading);
+   });
+
+   (function(){
+     var position = null;
+     try {
+       position = JSON.parse(sessionStorage.getItem(scroll_key));
+       sessionStorage.removeItem(scroll_key);
+     } catch(e) {}
+
+     if(!position || !position.id || !(Date.now() - position.time < 120000))
+       return;
+
+     // Not once the reader has moved on by hand, which the images settling
+     // below should not undo
+     var moved = false;
+     ['wheel', 'touchstart', 'keydown', 'mousedown'].forEach(function(type){
+       window.addEventListener(type, function(){ moved = true; }, {passive: true});
+     });
+
+     var go = function(){
+       var heading = document.getElementById(position.id);
+       if(heading && !moved)
+         window.scrollTo({top: heading.getBoundingClientRect().top + window.scrollY - position.offset,
+                          behavior: 'instant'});
+     };
+
+     // Once the structure is there, and again as the images above it load and
+     // push it down - for the first few seconds, as the page's load event may
+     // be long in coming
+     document.addEventListener('DOMContentLoaded', function(){
+       go();
+       var settling = new ResizeObserver(go);
+       settling.observe(document.body);
+       setTimeout(function(){ settling.disconnect(); }, 5000);
+     });
+   })();
+
    {% if task.celery_id %}
 
    var update_timer = 0;
    var update_timeout = 3000;
+
+   // The heading of the section being read: the one the contents rail marks,
+   // or where there is none, the last heading past the upper part of the
+   // window, as the rail would choose.
+   var reading_position = function(){
+     var heading = null;
+     var link = document.querySelector('#toc .nav-link.active');
+
+     if(link)
+       heading = document.getElementById(link.getAttribute('href').slice(1));
+
+     if(!heading){
+       document.querySelectorAll('[data-toc][id]').forEach(function(candidate){
+         if(!heading || candidate.getBoundingClientRect().top <= window.innerHeight*0.4)
+           heading = candidate;
+       });
+     }
+
+     return heading;
+   };
 
    // The page is reloaded once, when there is something new to render.
    // Everything else is updated in place, so that the view does not jump
@@ -27,6 +129,9 @@
    var reload_once = function(){
      if(!reloading){
        reloading = true;
+       var heading = reading_position();
+       if(heading)
+         save_position(heading);
        location.reload();
      }
    }
@@ -112,6 +217,20 @@
    $(function(){
      $('#id_blind_match_wcs').on('change', check_blindmatch_visibility);
      check_blindmatch_visibility();
+   });
+
+   check_psf_visibility = function(){
+     var elem = $('#psf_params_row');
+     if($('#id_photometry_method').val() == 'psf')
+       elem.show();
+     else
+       elem.hide();
+   }
+
+   // Show PSF photometry options only when it is selected
+   $(function(){
+     $('#id_photometry_method').on('change', check_psf_visibility);
+     check_psf_visibility();
    });
 
    // Make Enter in input fields submit the form using its primary button
@@ -234,7 +353,7 @@
 
    check_sub_method_visibility = function(){
      var selected = $('#id_subtraction_method').find(":selected").val();
-     var hotpants_col = $('#hotpants_extra_col');
+     var hotpants_col = $('#hotpants_extra_col, #hotpants_check_col');
      var sfft_cols = $('#sfft_kernel_poly_col, #sfft_bg_poly_col, #sfft_flux_poly_col');
 
      if (selected == 'hotpants') {
@@ -610,7 +729,7 @@
         </div>
       {% endif %}
 
-          <div class="col">
+          <div class="col" style="max-width:520px;">
             <div class="row">
               {% make_list 'image.fits' 'mask.fits' 'image_target.fits' 'custom_mask.fits' 'custom_template.fits' 'custom_template_mask.fits' 'image_bg.fits' 'image_rms.fits' 'fringe_model.fits' as list %}
               {% make_list 'image.fits' 'mask.fits' 'fringe_model.fits' as blink_list %}
@@ -639,13 +758,21 @@
           <!-- Help popover -->
           <span class="span-help-popover float-end" title="目标检测、天体测量与测光">
             <p>
-              目标检测由第一行参数控制。此处的 S/N 同时影响误差过大的检测剔除和星等极限估算。
+              目标检测由第一行参数控制：初始孔径、平滑核、背景网格和最小目标面积均以像素为单位。此处的 S/N 同时影响误差过大的检测剔除和星等极限估算。“预过滤检测”使用简单形状分类器剔除宇宙线或不良混合源等离群检测。
             </p>
             <p>
-              第二行控制检测到目标位置处的孔径测光。孔径大小（以及可选的天光背景估算环）以检测阶段测得的平均 FWHM 为单位指定。也可以在此手动覆盖 FWHM 值。
+              第二行控制检测到目标位置处的测光。孔径大小（以及可选的天光背景估算环）以检测阶段测得的平均 FWHM 为单位指定，也可以手动覆盖 FWHM。“测光方法”统一用于所有依赖光度定标的测量，包括原图中的目标和差分图中的目标与候选体：
+              <ul class="mb-1">
+                <li><b>孔径测光</b>——直接对孔径内像素求和</li>
+                <li><b>最优提取</b>——使用实测 FWHM 的高斯 PSF 加权求和，提高暗源信噪比</li>
+                <li><b>PSF 拟合</b>——使用由图中恒星建立的经验 PSF 模型，在固定位置拟合流量</li>
+              </ul>
             </p>
             <p>
-              光度定标（第三行）取决于主滤光片和参考星表的选择。星表将从 Vizier 下载，可选择仅保留亮于给定星等的恒星。星表不宜比图像深太多，否则可能导致虚假匹配。光度解将使用指定的零点空间依赖多项式阶数，如需要还会使用与所选星表相关的颜色项。支持的星表与滤光片：
+              选择 PSF 拟合时会显示额外参数。“PSF 空间阶数”控制 PSF 形状随位置变化的多项式阶数，留空自动选择，0 表示恒定 PSF。“PSF 拟合半径”以 FWHM 为单位，默认等于孔径；距离小于“PSF 分组半径”的目标会联合拟合，默认是拟合半径的两倍，0 表示不分组。模型由均匀分布在图中最亮且未标记的恒星建立，可限制“最大 PSF 星数”和“PSF 邮票大小”。“拟合目标邻星”会联合拟合目标周围的检测，避免邻星流量泄漏。目标 Cutout 还会显示扣除背景及目标/邻星 PSF 模型后的残差图，诊断图则展示 PSF 模型、径向剖面、空间变化和拟合残差。
+            </p>
+            <p>
+              光度定标取决于主滤光片和参考星表。星表将从 VizieR 下载，可选择仅保留亮于给定星等的恒星；星表不宜比图像深太多，否则可能导致虚假匹配。匹配半径自动确定，也可手动覆盖。光度解使用指定的零点空间多项式阶数，并可加入颜色项。“过滤星表混合源”会合并未分辨星表恒星并剔除受邻星污染的源；“非线性”加入探测器非线性项；“颜色项诊断”会对所有可用滤光片组合重复定标。支持的星表与滤光片：
               <ul class="mb-1">
                 {% for cat in supported_catalogs.values %}
                   <li><b>{{ cat.name }}</b> [{{ cat.filters|join:", " }}]</li>
@@ -657,6 +784,9 @@
             </p>
             <p>
               天体测量精化利用检测目标的位置和参考星表来精化 FITS 头中的现有天体测量解。结果保存到文件，并在后续处理中复用。如果没有初始天体测量解，可启动 WCS 盲匹配。该过程可限定到天空的特定区域以及像素比例范围。
+            </p>
+            <p>
+              <i>Centroid targets</i> refines the positions of the targets before measuring them. <i>Inspect background</i> stores background and its RMS maps, and <i>Radial profile</i> enables a diagnostic plot showing normalized intensities of stellar pixels versus the distance from their centroids, along with the FWHM, aperture radius and background annulus.
             </p>
           </span>
         {% endif %}
@@ -681,9 +811,9 @@
             {% include "task_block_text.html" with file='photometry.log' %}
           </div>
 
-          <div class="col">
+          <div class="col" style="max-width:520px;">
             <div class="row">
-              {% make_list 'objects.png' 'segmentation.fits' 'fwhm_mag.png' 'fwhm.png' 'photometry.png' 'photometry_unmasked.png' 'photometry_zeropoint.png' 'photometry_model.png' 'photometry_residuals.png' 'astrometry_dist.png' 'limit_hist.png'  'limit_sn.png' as list %}
+              {% make_list 'objects.png' 'segmentation.fits' 'fwhm_mag.png' 'fwhm.png' 'profile.png' 'psf.png' 'psf_grid.png' 'psf_residuals.png' 'photometry.png' 'photometry_unmasked.png' 'photometry_zeropoint.png' 'photometry_model.png' 'photometry_residuals.png' 'astrometry_dist.png' 'limit_hist.png'  'limit_sn.png' as list %}
               {% for name in list %}
                 {% if name in files %}
                   <div class="col" style="max-width: 256px">
@@ -742,7 +872,13 @@
             Cutout 显示目标在原始图像中的位置，以及 Pan-STARRS 或 SkyMapper（取决于天区所在半球）巡天中同一区域的天区图和掩模。掩模有助于识别宇宙线或饱和导致的问题。
           </p>
           <p>
-            叠加控制可调整子图的缩放与拉伸，并可开启标记目标位置的十字线。
+              使用 PSF 拟合测光时，还会显示扣除背景以及目标和邻星 PSF 模型后的残差图。对于模型描述良好的点源，残差应与噪声一致；目标位置仍有结构则表明模型与源不匹配，或拟合未计入邻星流量。
+            </p>
+            <p>
+              叠加控制可调整子图的缩放与拉伸，并可开启标记目标位置的十字线。
+          </p>
+          <p>
+            If <i>Radial profile</i> option is enabled for the photometry, the plot of individual pixel intensities around the target versus the distance from it is also shown, with masked pixels marked separately, and mean stellar profile scaled to the target flux overlaid. It helps checking whether the target is a well-defined point source, and whether it is contaminated by the neighbours.
           </p>
         </span>
       </h3>
@@ -751,6 +887,11 @@
         <div class="text-center">
           {% include "task_block_image.html" with image=cutout.path task=task ra=cutout.ra dec=cutout.dec only %}
         </div>
+        {% if cutout.profile %}
+          <div class="text-center">
+            {% include "task_block_image.html" with image=cutout.profile task=task only %}
+          </div>
+        {% endif %}
       {% endfor %}
 
     {% endif %}
@@ -796,7 +937,7 @@
             {% include "task_block_text.html" with file='transients_simple.log' %}
           </div>
 
-          <div class="col">
+          <div class="col" style="max-width:520px;">
             <div class="row">
               {% make_list '' as list %}
               {% for name in list %}
@@ -876,6 +1017,12 @@
               图像相减由 HOTPANTS 处理。代码会自动为图像和模板创建合适的噪声图，并为相减选择最优 HOTPANTS 参数。当然，也可以通过 JSON 字符串覆盖或附加参数。最常调整的参数是 <code>ko</code> 和 <code>bgo</code>，它们控制用于构建相减模型的区域内卷积核与背景的空间阶数。
             </p>
             <p>
+              启用“径向剖面”后，还会在差分图中恒星位置测量归一化残差，直接显示恒星核心和翼部有多少流量泄漏到差分图中，用于诊断相减质量。
+            </p>
+            <p>
+              系统还会使用定标时的相同孔径，对星表恒星在差分图中重复强制测光，并将剩余流量比例按定标星等和星表颜色绘图，以检查整体欠相减或过相减，以及其对亮度（非线性、饱和）和颜色（模板波段不匹配）的依赖。
+            </p>
+            <p>
               暂现源检测在差分图中进行，使用 HOTPANTS 生成的噪声模型和合并掩模。检测、测量参数以及候选体的光度定标与上面光度定标使用的相同。
             </p>
             <p>
@@ -904,9 +1051,9 @@
             {% include "task_block_text.html" with file='subtraction.log' %}
           </div>
 
-          <div class="col">
+          <div class="col" style="max-width:520px;">
             <div class="row">
-              {% make_list 'sub_image.fits' 'sub_mask.fits' 'sub_template.fits' 'sub_template_mask.fits' 'sub_conv.fits' 'sub_diff.fits' 'sub_sdiff.fits' 'sub_scorr.fits' 'sub_template_fwhm_mag.png' as list %}
+              {% make_list 'sub_image.fits' 'sub_mask.fits' 'sub_template.fits' 'sub_template_mask.fits' 'sub_conv.fits' 'sub_diff.fits' 'sub_sdiff.fits' 'sub_scorr.fits' 'sub_template_fwhm_mag.png' 'sub_profile.png' 'sub_photometry.png' as list %}
               {% make_list 'sub_image.fits' 'sub_template.fits' 'sub_diff.fits' as blink_list %}
               {% for name in list %}
                 {% if name in files %}
@@ -964,10 +1111,16 @@
             Cutout 显示目标在原始图像、模板、经匹配核卷积（实际相减所用）的模板、差分图和掩模中的位置。掩模有助于识别宇宙线或饱和导致的问题。
           </p>
           <p>
-            Cutout 上方的测量值对应目标位置在差分图中的强制测光，使用与上面光度定标相同的参数，因此所得星等（若测得）在同一系统内。上限由局部估计的背景噪声导出，对应上面目标检测使用的同一 S/N 水平。
+              使用 PSF 拟合测光时，还会显示从差分图中扣除目标 PSF 模型后的残差图。若目标是亮度变化的点源，残差应与噪声一致；目标位置仍有结构则表明其不具备点源形状，例如相减不完全留下的残差。
+            </p>
+            <p>
+              Cutout 上方的测量值对应目标位置在差分图中的强制测光，使用与上面光度定标相同的参数，因此所得星等（若测得）在同一系统内。上限由局部估计的背景噪声导出，对应上面目标检测使用的同一 S/N 水平。
           </p>
           <p>
             叠加控制可调整子图的缩放与拉伸，并可开启标记目标位置的十字线。
+          </p>
+          <p>
+            If <i>Radial profile</i> option is enabled for the photometry, the plot of individual pixel intensities around the target in the difference image is also shown, with the mean stellar profile of the original image scaled to the target flux overlaid - the template is the one being convolved, so the difference image keeps the original PSF. It helps checking whether the residual at the target position is a well-defined point source.
           </p>
         </span>
       </h3>
@@ -975,6 +1128,11 @@
       <div class="text-center">
         {% include "task_block_image.html" with image='sub_target.cutout' task=task ra=task.config.target_ra dec=task.config.target_dec only %}
       </div>
+      {% if 'sub_target_profile.png' in files %}
+        <div class="text-center">
+          {% include "task_block_image.html" with image='sub_target_profile.png' task=task only %}
+        </div>
+      {% endif %}
 
     {% endif %}
 

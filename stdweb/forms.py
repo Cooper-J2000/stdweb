@@ -13,6 +13,7 @@ from crispy_forms.bootstrap import InlineField, PrependedText, InlineRadios
 import json
 
 from .processing import supported_filters, supported_catalogs, supported_catalogs_transients, supported_templates
+from .processing import get_photometry_method
 from . import models
 
 
@@ -157,7 +158,7 @@ class UploadFileForm(forms.Form):
 
 
 class TasksFilterForm(forms.Form):
-    query = forms.CharField(max_length=100, required=False, label="筛选任务")
+    query = forms.CharField(max_length=250, required=False, label="筛选任务")
     show_all = forms.BooleanField(initial=False, required=False, label="显示全部")
 
     def __init__(self, *args, show_all=True, **kwargs):
@@ -170,7 +171,7 @@ class TasksFilterForm(forms.Form):
             Row(
                 Column(
                     InlineField(
-                        PrependedText('query', '筛选:', placeholder='按文件名、标题或用户名搜索任务，或指定场中心（可选半径）进行位置搜索。'),
+                        PrependedText('query', '筛选:', placeholder='按文件名、标题或用户名搜索，或指定场中心（可选半径）进行位置搜索。可用 key=value、key!=value、key<value、key>=value 等筛选任务配置。'),
                     ),
                     css_class="col-md"
                 ),
@@ -255,6 +256,24 @@ class TaskPhotometryForm(forms.Form):
     rel_bg1 = forms.FloatField(min_value=0, required=False, label="天光内环, FWHM")
     rel_bg2 = forms.FloatField(min_value=0, required=False, label="外环, FWHM")
     fwhm_override = forms.FloatField(min_value=0, required=False, label="FWHM 覆盖值, 像素")
+    bg_estimator = forms.ChoiceField(choices=[('mode', '众数'),
+                                               ('median', '中位数'),
+                                               ('mean', '均值')],
+                                      initial='mode', required=False, label="局部背景")
+    photometry_method = forms.ChoiceField(choices=[('aperture', '孔径测光'),
+                                                   ('optimal', '最优提取'),
+                                                   ('psf', 'PSF 拟合')],
+                                          initial='aperture', required=False, label="测光方法")
+    psf_degree = forms.IntegerField(min_value=0, max_value=4, required=False,
+                                    label="PSF 空间阶数",
+                                    widget=forms.NumberInput(attrs={'placeholder': '自动'}))
+    psf_fit_radius = forms.FloatField(min_value=0, required=False, label="PSF 拟合半径, FWHM")
+    psf_group_radius = forms.FloatField(min_value=0, required=False, label="PSF 分组半径, FWHM")
+    psf_max_stars = forms.IntegerField(min_value=10, required=False, label="最大 PSF 星数",
+                                       widget=forms.NumberInput(attrs={'placeholder': '自动'}))
+    psf_size = forms.IntegerField(min_value=5, required=False, label="PSF 邮票大小, 像素",
+                                  widget=forms.NumberInput(attrs={'placeholder': '自动'}))
+    psf_fit_neighbors = forms.BooleanField(required=False, label="拟合目标邻星")
 
     filter = forms.ChoiceField(choices=[('','')] + [(_,supported_filters[_]['name']) for _ in supported_filters.keys()],
                                required=False, label="滤光片")
@@ -267,13 +286,14 @@ class TaskPhotometryForm(forms.Form):
     sr_override = forms.FloatField(min_value=0, required=False, label="匹配半径, 角秒")
 
     prefilter_detections = forms.BooleanField(initial=True, required=False, label="预过滤检测")
+    adaptive_detection = forms.BooleanField(initial=False, required=False, label="自适应检测")
     filter_blends = forms.BooleanField(initial=True, required=False, label="过滤星表混合源")
     diagnose_color = forms.BooleanField(initial=False, required=False, label="颜色项诊断")
     refine_wcs = forms.BooleanField(required=False, label="精化天体测量")
     blind_match_wcs = forms.BooleanField(required=False, label="盲匹配")
     inspect_bg = forms.BooleanField(required=False, label="检查背景")
+    inspect_profile = forms.BooleanField(required=False, label="径向剖面")
     centroid_targets = forms.BooleanField(required=False, label="目标质心化")
-    optimal_extraction = forms.BooleanField(required=False, label="最优提取")
     nonlin = forms.BooleanField(required=False, label="非线性")
 
     blind_match_ps_lo = forms.FloatField(initial=0.2, min_value=0, required=False, label="比例下限, 角秒/像素")
@@ -285,6 +305,12 @@ class TaskPhotometryForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        # Older configs may only have boolean optimal_extraction option
+        if not self.initial.get('photometry_method'):
+            self.initial = dict(self.initial)
+            self.initial['photometry_method'] = get_photometry_method(self.initial)
+
         self.helper = FormHelper()
         self.helper.form_tag = False
         self.helper.disable_csrf = True
@@ -303,8 +329,20 @@ class TaskPhotometryForm(forms.Form):
                 Column('rel_aper'),
                 Column('rel_bg1'),
                 Column('rel_bg2'),
+                Column('bg_estimator'),
+                Column('photometry_method'),
                 Column('fwhm_override'),
                 Column('sr_override'),
+                css_class='align-items-end'
+            ),
+            Row(
+                Column('psf_degree'),
+                Column('psf_fit_radius'),
+                Column('psf_group_radius'),
+                Column('psf_max_stars'),
+                Column('psf_size'),
+                Column('psf_fit_neighbors', css_class="col-md-auto mb-2"),
+                id='psf_params_row',
                 css_class='align-items-end'
             ),
             Row(
@@ -328,11 +366,12 @@ class TaskPhotometryForm(forms.Form):
                 Column('blind_match_wcs', css_class="col-md-auto"),
                 Column('filter_blends', css_class="col-md-auto"),
                 Column('prefilter_detections', css_class="col-md-auto"),
+                Column('adaptive_detection', css_class="col-md-auto"),
                 Column('centroid_targets', css_class="col-md-auto"),
-                Column('optimal_extraction', css_class="col-md-auto"),
                 Column('nonlin', css_class="col-md-auto"),
                 Column('diagnose_color', css_class="col-md-auto"),
                 Column('inspect_bg', css_class="col-md-auto"),
+                Column('inspect_profile', css_class="col-md-auto"),
                 css_class='align-items-end'
             ),
             Row(
@@ -393,7 +432,15 @@ class TaskSubtractionForm(forms.Form):
     form_type = forms.CharField(initial='subtraction', widget=forms.HiddenInput())
     template = forms.ChoiceField(choices=[(_,supported_templates[_]['name']) for _ in supported_templates.keys()],
                                  required=False, label="模板")
+    template_combine = forms.BooleanField(initial=True, required=False, label="合成模板波段")
     hotpants_extra = forms.JSONField(initial={'ko': 2, 'bgo': 2}, required=False, label="HOTPANTS 附加参数", widget=forms.TextInput)
+    hotpants_check_stamps = forms.BooleanField(
+        initial=True, required=False, label="屏蔽模板中的饱和恒星",
+        widget=forms.CheckboxInput(attrs={'title': (
+            "重新运行 HOTPANTS，并屏蔽导致核归一化偏差的恒星（通常是 Pan-STARRS 等模板中的饱和恒星）。"
+            "这些区域在差分图中将标记为无效。"
+        )})
+    )
     sub_size = forms.IntegerField(min_value=0, required=False, label="子图大小")
     sub_overlap = forms.IntegerField(min_value=0, required=False, label="子图重叠")
     sub_verbose = forms.BooleanField(required=False, label="详细输出")
@@ -462,10 +509,12 @@ class TaskSubtractionForm(forms.Form):
                 id='transients_row',
             ),
             Row(
-                Column(InlineRadios('subtraction_mode', template='crispy_radioselect_inline.html'), css_class='form-group'),
+                Column(InlineRadios('subtraction_mode', template='crispy_radioselect_inline.html'), css_class='form-group col-md-auto'),
+                Column('template_combine', css_class="col-md-auto"),
+                Column('hotpants_check_stamps', css_class="col-md-auto", id='hotpants_check_col'),
                 Div(css_class="col-md"),
                 Column('sub_verbose', css_class="col-md-1"),
-                css_class='align-items-end'
+                css_class='align-items-center'
             ),
         )
 
@@ -480,6 +529,7 @@ class SkyPortalUploadForm(forms.Form):
     ],  initial='best', required=False, label="测光类型")
     instrument = forms.ChoiceField(choices=[], initial=None, required=False, label="仪器")
     limit_only = forms.BooleanField(initial=False, required=False, label="仅上传上限")
+    all_groups = forms.BooleanField(initial=False, required=False, label="在所有用户组中搜索源，而不限于 GRANDMA")
 
     def __init__(self, *args, **kwargs):
         instruments = kwargs.pop('instruments')
@@ -509,7 +559,8 @@ class SkyPortalUploadForm(forms.Form):
                 css_class='align-items-end',
             ),
             Row(
-                Column('limit_only', css_class="col-md"),
+                Column('limit_only', css_class="col-md-auto"),
+                Column('all_groups', css_class="col-md"),
                 css_class='align-items-end',
             ),
         )

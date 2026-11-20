@@ -24,13 +24,20 @@ from . import models
 from . import forms
 from . import processing
 
-def skyportal_resolve_source(ra, dec, sr=30/3600, api_token=settings.SKYPORTAL_TOKEN):
+# Timeout for requests to SkyPortal, in seconds
+SKYPORTAL_TIMEOUT = 60
+
+def skyportal_resolve_source(ra, dec, sr=30/3600, all_groups=False, api_token=settings.SKYPORTAL_TOKEN):
     if api_token is not None:
         headers = {'Authorization': f'token {api_token}'}
     else:
         headers = None
 
-    res = requests.get(f'{settings.SKYPORTAL_BASE_URL}/api/sources?ra={ra}&dec={dec}&radius={sr}&group_ids={settings.SKYPORTAL_GROUP_ID}', headers=headers)
+    params = {'ra': ra, 'dec': dec, 'radius': sr}
+    if not all_groups:
+        params['group_ids'] = settings.SKYPORTAL_GROUP_ID
+
+    res = requests.get(f'{settings.SKYPORTAL_BASE_URL}/api/sources', params=params, headers=headers, timeout=SKYPORTAL_TIMEOUT)
 
     if res:
         json = res.json()
@@ -48,7 +55,7 @@ def skyportal_get_instruments(api_token=settings.SKYPORTAL_TOKEN):
         headers = None
 
     try:
-        res = requests.get(f'{settings.SKYPORTAL_BASE_URL}/api/instrument', headers=headers)
+        res = requests.get(f'{settings.SKYPORTAL_BASE_URL}/api/instrument', headers=headers, timeout=SKYPORTAL_TIMEOUT)
 
         if res:
             json = res.json()
@@ -58,6 +65,23 @@ def skyportal_get_instruments(api_token=settings.SKYPORTAL_TOKEN):
         pass
 
     return []
+
+
+def skyportal_get_instrument_id_by_name(name, api_token=settings.SKYPORTAL_TOKEN):
+    if api_token is not None:
+        headers = {'Authorization': f'token {api_token}'}
+    else:
+        headers = None
+
+    # Network errors propagate so that the caller may tell them from an unknown name
+    res = requests.get(f'{settings.SKYPORTAL_BASE_URL}/api/instrument', params={'name': name}, headers=headers, timeout=SKYPORTAL_TIMEOUT)
+
+    if res:
+        json = res.json()
+        if json.get('status') == 'success' and json.get('data'):
+            return json['data'][0]['id']
+
+    return None
 
 
 def skyportal_upload_photometry(
@@ -98,12 +122,12 @@ def skyportal_upload_photometry(
         'group_ids': group_ids,
     }
 
-    res = requests.put(f'{settings.SKYPORTAL_BASE_URL}/api/photometry', headers=headers, json=payload)
+    res = requests.put(f'{settings.SKYPORTAL_BASE_URL}/api/photometry', headers=headers, json=payload, timeout=SKYPORTAL_TIMEOUT)
 
     return res.json()
 
 
-def skyportal_resolve_task(task):
+def skyportal_resolve_task(task, all_groups=False):
     # Guess some coordinates relevant for the task
     if 'target_ra' in task.config and 'target_dec' in task.config:
         ra = task.config.get('target_ra')
@@ -127,7 +151,7 @@ def skyportal_resolve_task(task):
 
     # Try resolving using increasing cone search radius
     for sr in [10/3600, 30/3600, 1/60, 10/60, 30/60]:
-        sid = skyportal_resolve_source(ra, dec, sr=sr)
+        sid = skyportal_resolve_source(ra, dec, sr=sr, all_groups=all_groups)
         if sid is not None:
             break
 
@@ -135,6 +159,92 @@ def skyportal_resolve_task(task):
         raise RuntimeError(f"Cannot resolve SkyPortal source at or around RA={ra:.4f} Dec={dec:.4f}")
 
     return ra, dec, sid
+
+
+# filter name -> SkyPortal filter name.
+SKYPORTAL_FILTER_MAP = {
+    'Umag': 'bessellu',
+    'Bmag': 'bessellb',
+    'Vmag': 'bessellv',
+    'Rmag': 'bessellr',
+    'Imag': 'besselli',
+    'umag': 'sdssu',
+    'gmag': 'sdssg',
+    'rmag': 'sdssr',
+    'imag': 'sdssi',
+    'zmag': 'sdssz',
+    'Jmag': '2massj',
+    'Hmag': '2massh',
+    'Ksmag': '2massks',
+    'Gmag': 'gaia::g',
+    'BPmag': 'gaia::gbp',
+    'RPmag': 'gaia::grp',
+}
+SKYPORTAL_VEGA_FILTERS = ['Umag', 'Bmag', 'Vmag', 'Rmag', 'Imag', 'Jmag', 'Hmag', 'Ksmag']
+
+
+def skyportal_prepare_photometry(task, types='best', limit_only=False):
+    """
+    Get information for uploading photometry to skyportal.
+
+    `types`: 'direct' / 'subtracted' / 'best' (prefer subtracted if available)
+    """
+    sfiles = []
+    if types == 'subtracted' or types == 'best':
+        sfiles.append('sub_target.vot')
+    if types == 'direct' or types == 'best':
+        sfiles.append('target.vot')
+
+    filename = None
+    is_diff = False
+    for sname in sfiles:
+        candidate = os.path.join(task.path(), sname)
+        if os.path.exists(candidate):
+            filename = candidate
+            is_diff = (sname == 'sub_target.vot')
+            break
+
+    if filename is None and types == 'subtracted':
+        raise RuntimeError('No template-subtracted target measurement')
+
+    try:
+        if filename is not None:
+            tobj = Table.read(filename)
+            row = tobj[0]
+            fname = row['mag_filter_name']
+
+            if row['mag_calib_err'] < 1/3 and not limit_only:
+                mag = row['mag_calib']
+                magerr = row['mag_calib_err']
+            else:
+                mag = None
+                magerr = None
+            mag_limit = row['mag_limit']
+        else:
+            fname = task.config['cat_col_mag']
+            mag = None
+            magerr = None
+            mag_limit = task.config['mag_limit']
+    except Exception:
+        raise RuntimeError('Cannot load target measurements')
+
+    magsys = 'vega' if fname in SKYPORTAL_VEGA_FILTERS else 'ab'
+    fname = SKYPORTAL_FILTER_MAP.get(fname, fname)
+
+    if 'time' in task.config and task.config['time']:
+        time = Time(task.config['time'])
+    else:
+        raise RuntimeError('Cannot get image time')
+
+    return {
+        'mjd': time.mjd,
+        'filter': fname,
+        'magsys': magsys,
+        'mag': mag,
+        'magerr': magerr,
+        'limit': mag_limit,
+        'is_diff': is_diff,
+    }
 
 
 @login_required
@@ -158,6 +268,7 @@ def skyportal(request):
             action = request.POST.get('action')
             types = request.POST.get('types', 'best')
             limit_only = request.POST.get('limit_only', False)
+            all_groups = form.cleaned_data.get('all_groups', False)
             context['action'] = action
 
             instrument = form.cleaned_data.get('instrument')
@@ -183,77 +294,17 @@ def skyportal(request):
 
                     ctask['name'] = task.original_name
                     ctask['title'] = task.title
-                    ctask['ra'], ctask['dec'], ctask['sid'] = skyportal_resolve_task(task)
+                    ctask['ra'], ctask['dec'], ctask['sid'] = skyportal_resolve_task(task, all_groups=all_groups)
 
-                    try:
-                        sfiles = []
-                        if types == 'subtracted' or types == 'best':
-                            sfiles.append('sub_target.vot')
-                        if types == 'direct' or types == 'best':
-                            sfiles.append('target.vot')
+                    phot = skyportal_prepare_photometry(task, types=types, limit_only=limit_only)
 
-                        for sname in sfiles:
-                            filename = f"tasks/{id}/{sname}"
-                            if os.path.exists(filename):
-                                if sname == 'sub_target.vot':
-                                    ctask['is_diff'] = True
-                                else:
-                                    ctask['is_diff'] = False
-
-                                break
-
-                        if os.path.exists(filename):
-                            tobj = Table.read(filename)
-                            row = tobj[0]
-                            fname = row['mag_filter_name']
-
-                            if row['mag_calib_err'] < 1/3 and not limit_only:
-                                mag = row['mag_calib']
-                                magerr = row['mag_calib_err']
-                            else:
-                                mag = None
-                                magerr = None
-                            mag_limit = row['mag_limit']
-                        else:
-                            fname = task.config['cat_col_mag']
-                            mag = None
-                            magerr = None
-                            mag_limit = task.config['mag_limit']
-                    except:
-                        raise RuntimeError('Cannot load target measurements')
-
-                    magsys = 'vega' if fname in ['Umag', 'Bmag', 'Vmag', 'Rmag', 'Imag', 'Jmag', 'Hmag', 'Ksmag'] else 'ab'
-                    fname = {
-                        'Umag': 'bessellu',
-                        'Bmag': 'bessellb',
-                        'Vmag': 'bessellv',
-                        'Rmag': 'bessellr',
-                        'Imag': 'besselli',
-                        'umag': 'sdssu',
-                        'gmag': 'sdssg',
-                        'rmag': 'sdssr',
-                        'imag': 'sdssi',
-                        'zmag': 'sdssz',
-                        'Jmag': '2massj',
-                        'Hmag': '2massh',
-                        'Ksmag': '2massks',
-                        'Gmag': 'gaia::g',
-                        'BPmag': 'gaia::grp',
-                        'RPmag': 'gaia::gbp',
-                    }.get(fname, fname)
-
-                    if 'time' in task.config and task.config['time']:
-                        time = Time(task.config['time'])
-                    else:
-                        raise RuntimeError('Cannot get image time')
-
-                    ctask['mjd'] = time.mjd
-                    ctask['filter'] = fname
-                    ctask['magsys'] = magsys
-                    ctask['mag'] = mag
-                    ctask['magerr'] = magerr
-                    ctask['limit'] = mag_limit
-
+                    ctask['is_diff'] = phot['is_diff']
+                    ctask['mjd'] = phot['mjd']
+                    ctask['filter'] = phot['filter']
+                    ctask['magsys'] = phot['magsys']
+                    ctask['mag'] = phot['mag']
+                    ctask['magerr'] = phot['magerr']
+                    ctask['limit'] = phot['limit']
                     if action == 'upload':
                         res = skyportal_upload_photometry(
                             # 'test_source_stdpipe',
